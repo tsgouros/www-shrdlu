@@ -1,0 +1,50 @@
+######################################
+# CodeMagic Project File
+######################################
+
+_BEGIN_PROJECT_CONTENTS_
+front
+	Arm.java=D:\front\Arm.java
+	Block.java=D:\front\Block.java
+	BlocksWorld.java=D:\front\BlocksWorld.java
+	Constants.java=D:\front\Constants.java
+	Pyramid.java=D:\front\Pyramid.java
+	Shrdlu.java=D:\front\Shrdlu.java
+	EmptyBox.java=D:\front\EmptyBox.java
+server
+	ShrdluServer.java=D:\front\Server\ShrdluServer.java
+	Test.java=D:\front\Server\Test.java
+test
+	Tester.java=D:\front\Tester.java
+lisp code
+	blockl=D:\front\Server\blockl
+	blockp=D:\front\Server\blockp
+	cgram=D:\front\Server\cgram
+	data=D:\front\Server\data
+	dictio=D:\front\Server\dictio
+	fasl=D:\front\Server\fasl
+	fixes=D:\front\Server\fixes
+	ginter=D:\front\Server\ginter
+	gramar=D:\front\Server\gramar
+	loader=D:\front\Server\loader
+	macros=D:\front\Server\macros
+	morpho=D:\front\Server\morpho
+	mover=D:\front\Server\mover
+	newans=D:\front\Server\newans
+	plnr=D:\front\Server\plnr
+	progmr=D:\front\Server\progmr
+	setup=D:\front\Server\setup
+	show=D:\front\Server\show
+	smass=D:\front\Server\smass
+	smspec=D:\front\Server\smspec
+	smutil=D:\front\Server\smutil
+	syscom=D:\front\Server\syscom
+	thtrac=D:\front\Server\thtrac
+_END_PROJECT_CONTENTS_
+
+REMOTE=FALSE
+FTPHOST=
+FTPPORT=ftp
+FTPUSER=
+FTPPWD=
+REMOTEDIR=
