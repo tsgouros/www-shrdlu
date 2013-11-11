@@ -1256,7 +1256,7 @@
     NOGOAL T)
 
 (DEFS \#DIRECTION
-    FEXPR (LAMBDA (A B) NIL)
+    FEXPR (LAMBDA (A) NIL) ;; fixed, was (A B), but that's not FEXPR-ish.
     NOGOAL T)
 
 (DEFS \#END 

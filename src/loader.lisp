@@ -1,32 +1,32 @@
 ;
 ; This file loads in all the needed files for SHRDLU.
 ;
+(defpackage shrdlu
+  (:use :common-lisp))
+(in-package :shrdlu)
 
 ; This appears to be the width of the terminal
 ; No, it's not.  Not sure what it is....
 (DEFCONSTANT CHRCT 76)
 
-(defpackage shrdlu
-  (:use :common-lisp))
-
 (load "fixes")
-(load "syscom")
 (load "progmr")
-;(load "cgram")
-;(load "smutil")
-;(load "smspec")
-;(load "smass")
-;(load "dictio")
-;(load "morpho")
-;(load "show")
-;(load "blockl")
-;(load "plnr")
-;(load "setup")
-;(load "thtrac")
-;(load "blockp")
-;(load "data")
-;(load "newans")
-;(load "mover")
+(load "cgram")
+(load "syscom")
+(load "smutil")
+(load "smspec")
+(load "smass")
+(load "dictio")
+(load "morpho")
+(load "show")
+(load "blockl")
+(load "plnr")
+(load "setup")
+(load "thtrac")
+(load "blockp")
+(load "data")
+(load "newans")
+(load "mover")
 
 ; Set either (DEBUGMODE) or (USERMODE) here.
 (USERMODE)
