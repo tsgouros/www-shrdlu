@@ -501,7 +501,6 @@
 (DEFUN-FEXPR THDUMP
        (THFILE)
        (APPLY 'UWRITE (COND (THFILE (CDDR THFILE))))
-       (IOC R)
        (THSTATE)
        (APPLY 'UFILE THFILE))
 

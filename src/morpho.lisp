@@ -7,6 +7,13 @@
 ;;;
 ;;;********************************************************************************
 
+;; my experimental version...
+(defun etaoinrish nil
+  (prog (WORD NEWWORD CHAR ALTN ALREADY-BLGING-NEWWRD WRD LAST
+	      NEXT Y WORD1 X RD POSS) 
+     thru  (SETQ SENT (SETQ WORD (SETQ PUNCT (SETQ POSS NIL))))
+	     (PRINT 'READY)
+	     (TERPRI)))
 
 (DEFUN ETAOIN NIL 
        (PROG (WORD NEWWORD CHAR ALTN ALREADY-BLGING-NEWWRD WRD LAST
@@ -14,7 +21,6 @@
 	THRU (SETQ SENT (SETQ WORD (SETQ PUNCT (SETQ POSS NIL))))
 	     (PRINT 'READY)
 	     (TERPRI)
-	     (AND MOBYREAD (IOC Q))
 	CHAR (COND ((EQUAL (PEEK-CHAR) #\~)
 	                  (READ-CHAR) (ERT) (GO THRU))) ; BREAK
 	     (SETQ CHAR (ASCII (CHAR-UPCASE (READ-CHAR))))
