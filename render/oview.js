@@ -4,6 +4,9 @@
 //   put it down
 //   move hand
 
+// QUESTION: WHY DOES CLICKING ON A CUBE SEEM NOT TO WORK?
+
+
 var container, stats;
 var camera, scene, renderer, projector;
 var objs = new blockCollection();
@@ -72,6 +75,9 @@ function block(name, color, dimension, position) {
     this.name = name;
     this.color = color;
     this.dimension = dimension;
+    // we want the position of the middle of the bottom while three.js seems 
+    // to use the middle of the object.  So the y dimension is always adjusted by
+    // half the height of the object.
     this.position = position;
 
     this.render = render;
@@ -97,7 +103,7 @@ function block(name, color, dimension, position) {
     this.obj.scale.y = 1;
 
     this.obj.position.x = position.x;
-    this.obj.position.y = position.y;
+    this.obj.position.y = position.y + (dimension.y / 2);
     this.obj.position.z = position.z;
 
     function render() {}
@@ -146,6 +152,28 @@ function block(name, color, dimension, position) {
 	this.moveto(target);
     }
 
+    function wholeMove(target) {
+
+	var adjustTarget = target;
+	adjustTarget += this.obj.dimension/2;
+
+	if (!this.upflag) 
+	{ 
+	    var uptarget = {x: this.obj.position.x,
+			    y: this.obj.position.y + 125,
+			    z: this.obj.position.z };
+
+	    var tween2 = new TWEEN.Tween(uptarget).to(adjustTarget, 2000);
+	    var tween1 = new TWEEN.Tween(this.obj.position).to(uptarget, 2000)
+		.chain(tween2).start();
+
+	} 
+	else
+	{
+	    var tween = new TWEEN.Tween(this.obj.position).to(adjustTarget, 2000)
+		.start();
+	}
+    }
 }
 
 
@@ -191,22 +219,47 @@ function init() {
 
     }
 
-    var material = new THREE.LineBasicMaterial( { color: 0xff0000, opacity: 0.2 } );
+    var material = new THREE.LineBasicMaterial( { color: 0x0000ff, opacity: 0.2 } );
 
     var line = new THREE.Line( geometry, material );
     line.type = THREE.LinePieces;
     scene.add( line );
 
+    // Axes
+    var xaxisGeometry = new THREE.Geometry();
+    xaxisGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
+    xaxisGeometry.vertices.push(new THREE.Vector3(100, 0, 0));
+    var xaxisMaterial = new THREE.LineBasicMaterial( {color: 0xff0000 });
+    var xaxis = new THREE.Line(xaxisGeometry, xaxisMaterial);
+    xaxis.type = THREE.LinePieces;
+    scene.add(xaxis);
+
+    var yaxisGeometry = new THREE.Geometry();
+    yaxisGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
+    yaxisGeometry.vertices.push(new THREE.Vector3(0, 100, 0));
+    var yaxisMaterial = new THREE.LineBasicMaterial( {color: 0xff0000 });
+    var yaxis = new THREE.Line(yaxisGeometry, yaxisMaterial);
+    yaxis.type = THREE.LinePieces;
+    scene.add(yaxis);
+
+    var zaxisGeometry = new THREE.Geometry();
+    zaxisGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
+    zaxisGeometry.vertices.push(new THREE.Vector3(0, 0, 100));
+    var zaxisMaterial = new THREE.LineBasicMaterial( {color: 0x00ff00 });
+    var zaxis = new THREE.Line(zaxisGeometry, zaxisMaterial);
+    zaxis.type = THREE.LinePieces;
+    scene.add(zaxis);
+
     // Cubes
 
     objs.add('cube1', Math.random() * 0xffffff, 
-		  {x: 50, y:50, z:50}, {x:0, y:25, z:0});
+		  {x: 50, y:50, z:50}, {x:0, y:0, z:0});
 
     objs.add('cube2', Math.random() * 0xffffff, 
-		  {x: 50, y:50, z:50}, {x:100, y:25, z:100});
+		  {x: 50, y:50, z:50}, {x:100, y:0, z:100});
 
     objs.add('cube3', Math.random() * 0xffffff, 
-		  {x: 75, y:75, z:75}, {x:-100, y:37, z:100});
+		  {x: 75, y:75, z:75}, {x:-100, y:0, z:100});
 
     for (i = 0; i < objs.nobjs; i++) {
 
@@ -262,6 +315,31 @@ function onDocumentMouseDown( event ) {
 	obj.pickup();
     }
 
+    console.log("clientX: " + event.clientX.toString() + 
+		" clientY: " + event.clientY.toString() + 
+		" ww: " + window.innerWidth.toString() +
+		" wh: " + window.innerHeight.toString());
+    console.log(camera.position.toArray().toString());
+
+
+    var vector = new THREE.Vector3( 
+ 	( event.clientX / window.innerWidth ) * 2 - 1, 
+ 	    - ( event.clientY / window.innerHeight ) * 2 + 1, 
+ 	0.5 );
+
+    console.log(">>" + vector.toArray().toString());
+
+    projector.unprojectVector( vector, camera );
+
+    console.log("<<" + vector.toArray().toString());
+
+    var raycaster = new THREE.Raycaster( 
+	camera.position, 
+ 	vector.sub( camera.position ).normalize() );
+
+    var intersects = raycaster.intersectObjects( scene.children );
+
+    console.log("}}" + intersects[0].object.position.toArray().toString());
 }
 
 
