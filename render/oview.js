@@ -1,4 +1,4 @@
-// needed commands: 
+// needed commands:
 //   create a block/pyramid/box/whatever (at some place)
 //   pick up a block or whatever
 //   put it down
@@ -11,59 +11,88 @@ var container, stats;
 var camera, scene, renderer, projector;
 var objs = new blockCollection();
 
+var pickupHeight = 125;
+
 init();
 animate();
 
 function blockCollection() {
-    this.set = {};
+    this.set = [];
     this.current = -1;
-    this.nobjs = 0;
 
     this.add = add;
     this.getCurrent = getCurrent;
-    this.getKeys = getKeys;
-    this.getNth = getNth;
 
+    this.getClicked = getClicked;
+    this.getPoised = getPoised;
 
     function add(name, color, dimension, position) {
-	this.set[name] = new block(name, color, dimension, position);
-	this.nobjs += 1;
+	this.set.push(new block(name, color, dimension, position));
     }
+
+    // Returns the object closest to the input position.
+    function getClicked(position)
+    {
+	var out = null;
+	var min = 1.0e35;
+
+	for (var i = 0; i < this.set.length; i++)
+	{
+	    var dist =
+		Math.pow(position.x - this.set[i].obj.position.x, 2) +
+		Math.pow(position.y - this.set[i].obj.position.y, 2) +
+		Math.pow(position.z - this.set[i].obj.position.z, 2);
+
+	    if (dist < min)
+	    {
+		out = this.set[i];
+		min = dist;
+	    }
+	}
+
+	return out;
+    }
+
+    // Returns the object that is up (i.e. poised to be put somewhere).
+    function getPoised()
+    {
+	for (var i = 0; i < this.set.length; i++)
+	{
+	    if (this.set[i].upflag)
+	    {
+		return this.set[i];
+	    }
+	}
+	return null;
+    }
+
 
     // returns an object and advances to the next one.
     function getCurrent() {
-	if (this.set.length < 1) 
-	{ 
+	if (this.set.length < 1)
+	{
 	    console.log("uh-oh");
-	    return null; 
-	} 
-	else 
+	    return null;
+	}
+	else
 	{
 	    this.current += 1;
 
-	    if (this.current >= Object.keys(this.set).length)
+	    if (this.current >= this.set.length)
 	    {
 		this.current = 0;
 	    }
 
-	    return this.set[Object.keys(this.set)[this.current]];
+	    return this.set[this.current];
 	}
-    }
-
-    function getKeys() {
-	return Object.keys(this.set);
-    }
-
-    function getNth(nth) {
-	return this.set[this.getKeys()[nth]];
     }
 
     // returns zero if no object is at position, otherwise the height
     // of whatever is there.
-    function floor(position) {
+   function floor(position) {
 
 	var out = 0;
-	for (i = 0 ; i < nobjs; i++) 
+	for (i = 0 ; i < nobjs; i++)
 	{
 	    out = Math.max(out, this.getNth(i).onTop(position));
 	}
@@ -75,27 +104,28 @@ function block(name, color, dimension, position) {
     this.name = name;
     this.color = color;
     this.dimension = dimension;
-    // we want the position of the middle of the bottom while three.js seems 
+    // we want the position of the middle of the bottom while three.js seems
     // to use the middle of the object.  So the y dimension is always adjusted by
     // half the height of the object.
-    this.position = position;
 
     this.render = render;
     this.moveto = moveto;
     this.pickup = pickup;
     this.putdown = putdown;
+    this.putTarget = putTarget;
 
     this.onTop = onTop;
+    this.top = top;
 
     this.upflag = false;
 
-    var geometry = new THREE.CubeGeometry( dimension.x, 
-					   dimension.y, 
+    var geometry = new THREE.CubeGeometry( dimension.x,
+					   dimension.y,
 					   dimension.z );
 
-    var material = new THREE.MeshLambertMaterial( 
-	{ color: color, 
-	  shading: THREE.FlatShading, 
+    var material = new THREE.MeshLambertMaterial(
+	{ color: color,
+	  shading: THREE.FlatShading,
 	  overdraw: .5 } );
 
     this.obj = new THREE.Mesh( geometry, material );
@@ -108,72 +138,84 @@ function block(name, color, dimension, position) {
 
     function render() {}
 
+    function top()
+    {
+	out = { x: this.obj.position.x,
+		y: this.obj.position.y + this.dimension.y / 2,
+		z: this.obj.position.z };
+
+	return out;
+    }
+
     // returns the height of the block if the x and z are on top of
     // it, zero otherwise.
-    function onTop(position) {
+    function onTop(position)
+    {
+	var out = position;
+
 	if ((this.obj.position.x - (this.obj.dimension.x / 2) < position.x) &&
 	    (position.x < (this.obj.position.x + (this.obj.dimension.x / 2))))
 	{
 	    if ((this.obj.position.z - (this.obj.dimension.z / 2) < position.z) &&
 		(position.z < (this.obj.position.z + (this.obj.dimension.z / 2))))
 	    {
-		return this.obj.position.y + (this.obj.dimension.y / 2);
+		out.y += this.obj.dimension.y / 2;
+		return out;
 	    }
 	}
 	return 0;
     }
 
-    function moveto( target ) {
+    function moveto( target )
+    {
+	console.log("moveto:" + target.x.toString() + "," +
+		    target.y.toString() + "," +
+		    target.z.toString());
+	console.log("from:" + this.obj.position.toArray().toString());
 
-	var tween = new TWEEN.Tween(this.obj.position).to(target, 2000);
-
-	tween.start();
+	var tween = new TWEEN.Tween(this.obj.position).to(target, 2000)
+	    .easing(TWEEN.Easing.Quartic.Out)
+	    .start();
     }
 
-    function pickup() {
-
-	var target = { x: this.obj.position.x, 
-		       y: this.obj.position.y + 125, 
+    function pickup()
+    {
+	console.log("pickup: " + this.name);
+	var target = { x: this.obj.position.x,
+		       y: this.obj.position.y + pickupHeight,
 		       z: this.obj.position.z };
 
 	this.upflag = true;
 
 	this.moveto(target);
-	
+
     }
 
-    function putdown() {
-	var target = { x: this.obj.position.x, 
-		       y: this.obj.position.y - 125, 
-		       z: this.obj.position.z };
+    function putTarget(target)
+    {
+	console.log("putTarget: " + this.name);
+	if (! this.upflag) return;
+
+	this.moveto({x: target.x,
+		     y: target.y + this.dimension.y / 2,
+		     z: target.z});
 
 	this.upflag = false;
+    }
+
+
+    function putdown()
+    {
+	console.log("putdown: " + this.name);
+	var target = { x: this.obj.position.x,
+		       y: this.obj.position.y - pickupHeight,
+		       z: this.obj.position.z };
 
 	this.moveto(target);
+
+	this.upflag = false;
     }
 
-    function wholeMove(target) {
-
-	var adjustTarget = target;
-	adjustTarget += this.obj.dimension/2;
-
-	if (!this.upflag) 
-	{ 
-	    var uptarget = {x: this.obj.position.x,
-			    y: this.obj.position.y + 125,
-			    z: this.obj.position.z };
-
-	    var tween2 = new TWEEN.Tween(uptarget).to(adjustTarget, 2000);
-	    var tween1 = new TWEEN.Tween(this.obj.position).to(uptarget, 2000)
-		.chain(tween2).start();
-
-	} 
-	else
-	{
-	    var tween = new TWEEN.Tween(this.obj.position).to(adjustTarget, 2000)
-		.start();
-	}
-    }
 }
 
 
@@ -192,28 +234,30 @@ function init() {
     info.innerHTML = '';
     container.appendChild( info );
 
-    camera = new THREE.OrthographicCamera( window.innerWidth / -2, 
-					   window.innerWidth / 2, 
-					   window.innerHeight / 2, 
-					   window.innerHeight / -2, 
+    camera = new THREE.OrthographicCamera( window.innerWidth / -2,
+					   window.innerWidth / 2,
+					   window.innerHeight / 2,
+					   window.innerHeight / -2,
 					   -500, 1000 );
-    camera.position.x = 200;
-    camera.position.y = 100;
-    camera.position.z = 200;
+     camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+
+   camera.position.x = 400;
+    camera.position.y = 300;
+    camera.position.z = 500;
 
     scene = new THREE.Scene();
 
     // Grid
 
     var size = 500, step = 25;
-    
+
     var geometry = new THREE.Geometry();
 
     for ( var i = - size; i <= size; i += step ) {
-	
+
 	geometry.vertices.push( new THREE.Vector3( - size, 0, i ) );
 	geometry.vertices.push( new THREE.Vector3(   size, 0, i ) );
-	
+
 	geometry.vertices.push( new THREE.Vector3( i, 0, - size ) );
 	geometry.vertices.push( new THREE.Vector3( i, 0,   size ) );
 
@@ -252,20 +296,22 @@ function init() {
 
     // Cubes
 
-    objs.add('cube1', Math.random() * 0xffffff, 
+    objs.add('cube1', Math.random() * 0xffffff,
 		  {x: 50, y:50, z:50}, {x:0, y:0, z:0});
 
-    objs.add('cube2', Math.random() * 0xffffff, 
-		  {x: 50, y:50, z:50}, {x:100, y:0, z:100});
+    objs.add('cube2', Math.random() * 0xffffff,
+     		  {x: 50, y:50, z:50}, {x:100, y:0, z:100});
 
-    objs.add('cube3', Math.random() * 0xffffff, 
-		  {x: 75, y:75, z:75}, {x:-100, y:0, z:100});
+    objs.add('cube3', Math.random() * 0xffffff,
+     		  {x: 75, y:75, z:75}, {x:-100, y:0, z:100});
 
-    for (i = 0; i < objs.nobjs; i++) {
+    for (i = 0; i < objs.set.length; i++) {
 
-	console.log(objs.getNth(i).name);
+	console.log("i: " + i);
 
-	scene.add(objs.getNth(i).obj);
+	console.log(objs.set[i].name);
+
+	scene.add(objs.set[i].obj);
     }
 
     // Lights
@@ -290,9 +336,9 @@ function init() {
     projector = new THREE.Projector();
     renderer = new THREE.CanvasRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
-    
+
     container.appendChild( renderer.domElement );
-    
+
     stats = new Stats();
     stats.domElement.style.position = 'absolute';
     stats.domElement.style.top = '0px';
@@ -307,39 +353,57 @@ function onDocumentMouseDown( event ) {
 
     event.preventDefault();
 
-    var obj = objs.getCurrent();
-
-    if (obj.upflag) {
-	obj.putdown(); 
-    } else {
-	obj.pickup();
-    }
-
-    console.log("clientX: " + event.clientX.toString() + 
-		" clientY: " + event.clientY.toString() + 
-		" ww: " + window.innerWidth.toString() +
-		" wh: " + window.innerHeight.toString());
-    console.log(camera.position.toArray().toString());
-
-
-    var vector = new THREE.Vector3( 
- 	( event.clientX / window.innerWidth ) * 2 - 1, 
- 	    - ( event.clientY / window.innerHeight ) * 2 + 1, 
+    var vector = new THREE.Vector3(
+ 	( event.clientX / window.innerWidth ) * 2 - 1,
+ 	    - ( event.clientY / window.innerHeight ) * 2 + 1,
  	0.5 );
-
-    console.log(">>" + vector.toArray().toString());
 
     projector.unprojectVector( vector, camera );
 
-    console.log("<<" + vector.toArray().toString());
-
-    var raycaster = new THREE.Raycaster( 
-	camera.position, 
+    var raycaster = new THREE.Raycaster(
+	camera.position,
  	vector.sub( camera.position ).normalize() );
 
     var intersects = raycaster.intersectObjects( scene.children );
 
-    console.log("}}" + intersects[0].object.position.toArray().toString());
+    // Check was an object clicked?
+    if (intersects.length > 0)
+    {
+	var clicked = objs.getClicked(intersects[0].point);
+
+	console.log("clicked: " + clicked.name);
+
+	// If so, is there an object poised?
+
+	var poised = objs.getPoised();
+
+	if (poised)
+	{
+	    // Did we click on an object in the air?
+	    if (poised == clicked)
+	    {
+		poised.putdown();
+
+	    } else {
+
+		// If so, move the poised object onto the target object.
+		poised.putTarget(clicked.top());
+	    }
+
+	} else {
+
+	    // If not, poise the clicked object.
+
+	    if (clicked.upflag) {
+		clicked.putdown();
+	    } else {
+		clicked.pickup();
+	    }
+	}
+    }
+
+
+
 }
 
 
@@ -367,14 +431,14 @@ function onWindowResize() {
 
 //     event.preventDefault();
 
-//     var vector = new THREE.Vector3( 
-// 	( event.clientX / window.innerWidth ) * 2 - 1, 
-// 	    - ( event.clientY / window.innerHeight ) * 2 + 1, 
+//     var vector = new THREE.Vector3(
+// 	( event.clientX / window.innerWidth ) * 2 - 1,
+// 	    - ( event.clientY / window.innerHeight ) * 2 + 1,
 // 	0.5 );
 //     projector.unprojectVector( vector, camera );
 
-//     var raycaster = new THREE.Raycaster( 
-// 	camera.position, 
+//     var raycaster = new THREE.Raycaster(
+// 	camera.position,
 // 	vector.sub( camera.position ).normalize() );
 
 //     var intersects = raycaster.intersectObjects( scene.children );
@@ -416,10 +480,10 @@ function render() {
 
     var timer = Date.now() * 0.0001;
 
-    camera.position.x = Math.cos( timer ) * 200;
-    camera.position.z = Math.sin( timer ) * 200;
+//    camera.position.x = Math.cos( timer ) * 200;
+//    camera.position.z = Math.sin( timer ) * 200;
     camera.lookAt( scene.position );
-    
+
     renderer.render( scene, camera );
 
 }
