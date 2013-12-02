@@ -4,17 +4,107 @@
 //   put it down
 //   move hand
 
-// QUESTION: WHY DOES CLICKING ON A CUBE SEEM NOT TO WORK?
-
 
 var container, stats;
 var camera, scene, renderer, projector;
 var objs = new blockCollection();
+var cmds = new commands();
 
 var pickupHeight = 125;
 
 init();
 animate();
+
+// This object interprets text commands into object motion commands.
+// The text commands are to be issued by a SHRDLU port and are in the
+// SHRDLU coordinates (where z is up).
+function commands() {
+    // commands are these:
+    //  CREATE/NAME/TYPE/COLOR/DIMX/DIMY/DIMZ/POSX/POSY/POSZ
+    //  MOVE/POSX/POSY/POSZ
+    //  GRASP
+    //  RELEASE
+
+    this.hand = {x: 0, y: 200, z: 0};
+
+    this.parse = parse;
+
+    this.create = create;
+    this.move = move;
+    this.grasp = grasp;
+    this.release = release;
+
+    this.objInHand = null;
+
+    function parse(string)
+    {
+	cmdArray = string.split("/");
+
+	switch ( cmdArray[0] )
+	{
+	case "CREATE":
+	    this.create(cmdArray);
+	    break;
+
+	case "MOVE":
+	    this.move({x: parseInt(cmdArray[1]),
+		       y: parseInt(cmdArray[2]),
+		       z: parseInt(cmdArray[3])});
+	    break;
+
+	case "GRASP":
+	    this.grasp();
+	    break;
+
+	case "RELEASE":
+	    this.release();
+	    break;
+
+	}
+    }
+
+
+    function create(cmdArray) {
+	return null;
+    }
+
+    function move(position) {
+	console.log("MOVE HAND TO: " + position.toString());
+	this.hand = position;
+
+	if (this.objInHand)
+	{
+	    this.objInHand.moveto(position);
+	}
+
+	return null;
+    }
+
+    function grasp() {
+
+	this.objInHand = objs.getClosest(this.hand);
+
+	return this.objInHand;
+    }
+    function release() {
+
+	var target = objs.floor(this.hand);
+
+	console.log("moving to:" + target.toString());
+	console.log("this is what's moving: " + this.objInHand.name);
+
+	this.objInHand.moveto({x: this.hand.x,
+			       y: target + this.objInHand.dimension.y / 2,
+			       z: this.hand.z});
+
+	this.objInHand = null;
+
+	return null;
+    }
+
+}
+
+
 
 function blockCollection() {
     this.set = [];
@@ -23,15 +113,18 @@ function blockCollection() {
     this.add = add;
     this.getCurrent = getCurrent;
 
-    this.getClicked = getClicked;
+    this.getClosest = getClosest;
     this.getPoised = getPoised;
 
-    function add(name, color, dimension, position) {
-	this.set.push(new block(name, color, dimension, position));
+    this.floor = floor;
+
+    function add(name, type, color, dimension, position) {
+	this.set.push(new block(name, type, color, dimension, position));
     }
 
+
     // Returns the object closest to the input position.
-    function getClicked(position)
+    function getClosest(position)
     {
 	var out = null;
 	var min = 1.0e35;
@@ -92,16 +185,19 @@ function blockCollection() {
    function floor(position) {
 
 	var out = 0;
-	for (i = 0 ; i < nobjs; i++)
+	for (i = 0 ; i < this.set.length; i++)
 	{
-	    out = Math.max(out, this.getNth(i).onTop(position));
+	    out = Math.max(out, this.set[i].onTop(position));
 	}
+
+       return out;
     }
 }
 
 
-function block(name, color, dimension, position) {
+function block(name, type, color, dimension, position) {
     this.name = name;
+    this.type = type;
     this.color = color;
     this.dimension = dimension;
     // we want the position of the middle of the bottom while three.js seems
@@ -119,9 +215,31 @@ function block(name, color, dimension, position) {
 
     this.upflag = false;
 
-    var geometry = new THREE.CubeGeometry( dimension.x,
-					   dimension.y,
-					   dimension.z );
+    var geometry;
+
+    switch (type)
+    {
+    case "pyramid":
+	geometry =
+	    new THREE.CylinderGeometry( 0,
+					Math.sqrt(Math.pow(dimension.x/2,2) +
+						  Math.pow(dimension.z/2,2)),
+					dimension.y, 4, 4 );
+	break;
+
+    case "box":
+	geometry = new THREE.BoxGeometry( dimension.x,
+    					   dimension.y,
+ 					   dimension.z );
+
+	break;
+
+    default:
+	geometry = new THREE.CubeGeometry( dimension.x,
+    					   dimension.y,
+ 					   dimension.z );
+	break;
+    }
 
     var material = new THREE.MeshLambertMaterial(
 	{ color: color,
@@ -132,6 +250,10 @@ function block(name, color, dimension, position) {
 
     this.obj.scale.y = 1;
 
+    if (this.type == "pyramid") this.obj.rotation.y = Math.PI/4;
+
+    console.log(position.x);
+
     this.obj.position.x = position.x;
     this.obj.position.y = position.y + (dimension.y / 2);
     this.obj.position.z = position.z;
@@ -140,29 +262,47 @@ function block(name, color, dimension, position) {
 
     function top()
     {
-	out = { x: this.obj.position.x,
-		y: this.obj.position.y + this.dimension.y / 2,
-		z: this.obj.position.z };
+	if (this.type == "box")
+	{
+	    out = { x: this.obj.position.x,
+		    y: this.obj.position.y - this.dimension.y / 2,
+		    z: this.obj.position.z };
+	} else {
+
+	    out = { x: this.obj.position.x,
+		    y: this.obj.position.y + this.dimension.y / 2,
+		    z: this.obj.position.z };
+	}
 
 	return out;
     }
 
     // returns the height of the block if the x and z are on top of
-    // it, zero otherwise.
+    // it, zero otherwise.  If the input position is equal to the
+    // object position, then the test is degenerate and will return
+    // zero.
     function onTop(position)
     {
-	var out = position;
+	var out;
 
-	if ((this.obj.position.x - (this.obj.dimension.x / 2) < position.x) &&
-	    (position.x < (this.obj.position.x + (this.obj.dimension.x / 2))))
+	if ((position.x == this.obj.position.x) &&
+	    (position.y == this.obj.position.y) &&
+	    (position.z == this.obj.position.z)) {
+	    return 0;
+	}
+
+	if ((this.obj.position.x - (this.dimension.x / 2) < position.x) &&
+	    (position.x < (this.obj.position.x + (this.dimension.x / 2))))
 	{
-	    if ((this.obj.position.z - (this.obj.dimension.z / 2) < position.z) &&
-		(position.z < (this.obj.position.z + (this.obj.dimension.z / 2))))
+	    if ((this.obj.position.z - (this.dimension.z / 2) < position.z) &&
+		(position.z < (this.obj.position.z + (this.dimension.z / 2))))
 	    {
-		out.y += this.obj.dimension.y / 2;
+		out = this.obj.position.y + this.dimension.y / 2;
+		console.log("here:" + out);
 		return out;
 	    }
 	}
+	console.log("zero");
 	return 0;
     }
 
@@ -241,9 +381,9 @@ function init() {
 					   -500, 1000 );
      camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
 
-   camera.position.x = 400;
+   camera.position.x = 300;
     camera.position.y = 300;
-    camera.position.z = 500;
+    camera.position.z = 400;
 
     scene = new THREE.Scene();
 
@@ -296,14 +436,20 @@ function init() {
 
     // Cubes
 
-    objs.add('cube1', Math.random() * 0xffffff,
+    objs.add('cube1', "block", Math.random() * 0xffffff,
 		  {x: 50, y:50, z:50}, {x:0, y:0, z:0});
 
-    objs.add('cube2', Math.random() * 0xffffff,
+    objs.add('cube2', "block", Math.random() * 0xffffff,
      		  {x: 50, y:50, z:50}, {x:100, y:0, z:100});
 
-    objs.add('cube3', Math.random() * 0xffffff,
+    objs.add('cube3', "block", Math.random() * 0xffffff,
      		  {x: 75, y:75, z:75}, {x:-100, y:0, z:100});
+
+    objs.add('pyramid1', "pyramid", Math.random() * 0xffffff,
+     		  {x: 50, y:50, z:50}, {x:100, y:0, z:-100});
+
+    objs.add('box1', 'box', Math.random() * 0xffffff,
+     		  {x: 100, y:25, z:100}, {x:-100, y:0, z:-100});
 
     for (i = 0; i < objs.set.length; i++) {
 
@@ -369,7 +515,7 @@ function onDocumentMouseDown( event ) {
     // Check was an object clicked?
     if (intersects.length > 0)
     {
-	var clicked = objs.getClicked(intersects[0].point);
+	var clicked = objs.getClosest(intersects[0].point);
 
 	console.log("clicked: " + clicked.name);
 
@@ -480,8 +626,8 @@ function render() {
 
     var timer = Date.now() * 0.0001;
 
-//    camera.position.x = Math.cos( timer ) * 200;
-//    camera.position.z = Math.sin( timer ) * 200;
+    camera.position.x = Math.cos( timer ) * 200;
+    camera.position.z = Math.sin( timer ) * 200;
     camera.lookAt( scene.position );
 
     renderer.render( scene, camera );
