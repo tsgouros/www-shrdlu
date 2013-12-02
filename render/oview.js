@@ -21,21 +21,36 @@ animate();
 function commands() {
     // commands are these:
     //  CREATE/NAME/TYPE/COLOR/DIMX/DIMY/DIMZ/POSX/POSY/POSZ
+    //  REPLACE/NAME/POSX/POSY/POSZ
+    //  QUERY/NAME
     //  MOVE/POSX/POSY/POSZ
     //  GRASP
     //  RELEASE
+    //
+    // The MOVE, GRASP, and RELEASE commands are pretty much straight
+    // out of SHRDLU.  The CREATE, QUERY, and REPLACE commands exist
+    // to set the scene in the first place and to recover from errors
+    // (i.e. mismatches between the display and the memory).
 
+    // Tracks the location of SHRDLU's invisible hand.  The GRASP
+    // command only picks up stuff that's immediately beneath the
+    // hand.
     this.hand = {x: 0, y: 200, z: 0};
 
+    // Points to the block object in SHRDLU's hand.
+    this.objInHand = null;
+
+    // Parses a command string into the methods and arguments.
     this.parse = parse;
 
+    // The methods corresponding to each command.
     this.create = create;
     this.move = move;
     this.grasp = grasp;
     this.release = release;
 
-    this.objInHand = null;
-
+    // Parses a command string into a method and its arguments, and
+    // invokes the methods on the arguments.
     function parse(string)
     {
 	cmdArray = string.split("/");
@@ -86,6 +101,7 @@ function commands() {
 
 	return this.objInHand;
     }
+
     function release() {
 
 	var target = objs.floor(this.hand);
@@ -105,25 +121,28 @@ function commands() {
 }
 
 
-
+// The collection of objects that can be manipulated is organized by a
+// blockCollection object.  The main part of it is the .set, an array
+// of block objects.
 function blockCollection() {
     this.set = [];
-    this.current = -1;
 
     this.add = add;
-    this.getCurrent = getCurrent;
 
     this.getClosest = getClosest;
     this.getPoised = getPoised;
 
     this.floor = floor;
 
+    // Create and add a new block object to the set.
     function add(name, type, color, dimension, position) {
 	this.set.push(new block(name, type, color, dimension, position));
     }
 
 
-    // Returns the object closest to the input position.
+    // Returns the object closest to the input position.  There will
+    // be circumstances where this is not correct, but I think they
+    // will be uncommon.
     function getClosest(position)
     {
 	var out = null;
@@ -160,28 +179,9 @@ function blockCollection() {
     }
 
 
-    // returns an object and advances to the next one.
-    function getCurrent() {
-	if (this.set.length < 1)
-	{
-	    console.log("uh-oh");
-	    return null;
-	}
-	else
-	{
-	    this.current += 1;
-
-	    if (this.current >= this.set.length)
-	    {
-		this.current = 0;
-	    }
-
-	    return this.set[this.current];
-	}
-    }
-
-    // returns zero if no object is at position, otherwise the height
-    // of whatever is there.
+    // returns zero if no object is below the input position.  But if
+    // there are any objects at this position, returns the height of
+    // the highest object.
    function floor(position) {
 
 	var out = 0;
@@ -195,14 +195,20 @@ function blockCollection() {
 }
 
 
+// A block object contains the graphical representation of some
+// manipulable object in the scene.  this.obj is the actual graphical
+// representation, while the rest is bookkeeping information and
+// characteristics.
 function block(name, type, color, dimension, position) {
     this.name = name;
     this.type = type;
     this.color = color;
     this.dimension = dimension;
-    // we want the position of the middle of the bottom while three.js seems
-    // to use the middle of the object.  So the y dimension is always adjusted by
-    // half the height of the object.
+
+    // Three.js defines the position of an object to be some point at
+    // roughly the center of the object.  For this application, we
+    // want the position of the middle of the bottom.  So the y
+    // dimension is always adjusted by half the height of the object.
 
     this.render = render;
     this.moveto = moveto;
@@ -213,6 +219,10 @@ function block(name, type, color, dimension, position) {
     this.onTop = onTop;
     this.top = top;
 
+    // Indicates whether the object is up in the sense of being ready
+    // to be put down somewhere.  That is, an object can be "up"
+    // because it's sitting on something else, or "up" because someone
+    // is holding it.
     this.upflag = false;
 
     var geometry;
@@ -229,8 +239,8 @@ function block(name, type, color, dimension, position) {
 
     case "box":
 	geometry = new THREE.BoxGeometry( dimension.x,
-    					   dimension.y,
- 					   dimension.z );
+    					  dimension.y,
+ 					  dimension.z );
 
 	break;
 
@@ -246,10 +256,13 @@ function block(name, type, color, dimension, position) {
 	  shading: THREE.FlatShading,
 	  overdraw: .5 } );
 
+    // Create the graphical object, the important part of the block.
     this.obj = new THREE.Mesh( geometry, material );
 
     this.obj.scale.y = 1;
 
+    // We want our pyramids to be square with our blocks, so rotate
+    // them slightly.
     if (this.type == "pyramid") this.obj.rotation.y = Math.PI/4;
 
     console.log(position.x);
@@ -260,6 +273,7 @@ function block(name, type, color, dimension, position) {
 
     function render() {}
 
+    // Returns the middle of the top surface of this object.
     function top()
     {
 	if (this.type == "box")
@@ -277,10 +291,10 @@ function block(name, type, color, dimension, position) {
 	return out;
     }
 
-    // returns the height of the block if the x and z are on top of
-    // it, zero otherwise.  If the input position is equal to the
-    // object position, then the test is degenerate and will return
-    // zero.
+    // returns the height of the block if the x and z define a point
+    // above it, zero otherwise.  If the input position is equal to
+    // the object position, then the test is degenerate and will
+    // return zero.
     function onTop(position)
     {
 	var out;
@@ -306,6 +320,7 @@ function block(name, type, color, dimension, position) {
 	return 0;
     }
 
+    // Moves the object to a specified target point.
     function moveto( target )
     {
 	console.log("moveto:" + target.x.toString() + "," +
@@ -318,6 +333,7 @@ function block(name, type, color, dimension, position) {
 	    .start();
     }
 
+    // Moves an object to a preset "pickupHeight".
     function pickup()
     {
 	console.log("pickup: " + this.name);
@@ -331,6 +347,7 @@ function block(name, type, color, dimension, position) {
 
     }
 
+    // Moves an object to a specified point while also flipping the upflag.
     function putTarget(target)
     {
 	console.log("putTarget: " + this.name);
@@ -343,7 +360,8 @@ function block(name, type, color, dimension, position) {
 	this.upflag = false;
     }
 
-
+    // Subtracts the pickupHeight from an object's height.  Sort of a
+    // crude way to put something down, really.
     function putdown()
     {
 	console.log("putdown: " + this.name);
@@ -358,7 +376,7 @@ function block(name, type, color, dimension, position) {
 
 }
 
-
+// Sets everything up.
 function init() {
 
     console.log("hello there");
@@ -374,21 +392,25 @@ function init() {
     info.innerHTML = '';
     container.appendChild( info );
 
-    camera = new THREE.OrthographicCamera( window.innerWidth / -2,
-					   window.innerWidth / 2,
-					   window.innerHeight / 2,
-					   window.innerHeight / -2,
-					   -500, 1000 );
-     camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+    // The clickable interface seems only to work with the perspective
+    // camera.  Something to do with the operation of the raycaster.
 
-   camera.position.x = 300;
+    // camera = new THREE.OrthographicCamera( window.innerWidth / -2,
+    // 					   window.innerWidth / 2,
+    // 					   window.innerHeight / 2,
+    // 					   window.innerHeight / -2,
+    // 					   -500, 1000 );
+     camera = new THREE.PerspectiveCamera(70,
+					  window.innerWidth / window.innerHeight,
+					  1, 10000 );
+
+    camera.position.x = 300;
     camera.position.y = 300;
     camera.position.z = 400;
 
     scene = new THREE.Scene();
 
-    // Grid
-
+    // Draw the grid that makes up the floor.
     var size = 500, step = 25;
 
     var geometry = new THREE.Geometry();
@@ -403,13 +425,14 @@ function init() {
 
     }
 
-    var material = new THREE.LineBasicMaterial( { color: 0x0000ff, opacity: 0.2 } );
+    var material = new THREE.LineBasicMaterial( { color: 0x0000ff,
+						  opacity: 0.2 } );
 
     var line = new THREE.Line( geometry, material );
     line.type = THREE.LinePieces;
     scene.add( line );
 
-    // Axes
+    // Add some axes
     var xaxisGeometry = new THREE.Geometry();
     xaxisGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
     xaxisGeometry.vertices.push(new THREE.Vector3(100, 0, 0));
@@ -421,7 +444,7 @@ function init() {
     var yaxisGeometry = new THREE.Geometry();
     yaxisGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
     yaxisGeometry.vertices.push(new THREE.Vector3(0, 100, 0));
-    var yaxisMaterial = new THREE.LineBasicMaterial( {color: 0xff0000 });
+    var yaxisMaterial = new THREE.LineBasicMaterial( {color: 0xff00ff });
     var yaxis = new THREE.Line(yaxisGeometry, yaxisMaterial);
     yaxis.type = THREE.LinePieces;
     scene.add(yaxis);
@@ -434,7 +457,10 @@ function init() {
     zaxis.type = THREE.LinePieces;
     scene.add(zaxis);
 
-    // Cubes
+
+    // This is where we're adding objects.  This is just a set of
+    // temporary hacks and the system should add its objects via the
+    // CREATE command in cmds.parse.
 
     objs.add('cube1', "block", Math.random() * 0xffffff,
 		  {x: 50, y:50, z:50}, {x:0, y:0, z:0});
@@ -451,17 +477,12 @@ function init() {
     objs.add('box1', 'box', Math.random() * 0xffffff,
      		  {x: 100, y:25, z:100}, {x:-100, y:0, z:-100});
 
+    // Add all the objects to the scene.
     for (i = 0; i < objs.set.length; i++) {
-
-	console.log("i: " + i);
-
-	console.log(objs.set[i].name);
-
 	scene.add(objs.set[i].obj);
     }
 
     // Lights
-
     var ambientLight = new THREE.AmbientLight( 0x0c );
     scene.add( ambientLight );
 
@@ -495,64 +516,59 @@ function init() {
     document.addEventListener( 'mousedown', onDocumentMouseDown, false );
     window.addEventListener( 'resize', onWindowResize, false );
 
-function onDocumentMouseDown( event ) {
+    function onDocumentMouseDown( event ) {
 
-    event.preventDefault();
+	event.preventDefault();
 
-    var vector = new THREE.Vector3(
- 	( event.clientX / window.innerWidth ) * 2 - 1,
- 	    - ( event.clientY / window.innerHeight ) * 2 + 1,
- 	0.5 );
+	var vector = new THREE.Vector3(
+ 	    ( event.clientX / window.innerWidth ) * 2 - 1,
+ 		- ( event.clientY / window.innerHeight ) * 2 + 1,
+ 	    0.5 );
 
-    projector.unprojectVector( vector, camera );
+	projector.unprojectVector( vector, camera );
 
-    var raycaster = new THREE.Raycaster(
-	camera.position,
- 	vector.sub( camera.position ).normalize() );
+	var raycaster = new THREE.Raycaster(
+	    camera.position,
+ 	    vector.sub( camera.position ).normalize() );
 
-    var intersects = raycaster.intersectObjects( scene.children );
+	var intersects = raycaster.intersectObjects( scene.children );
 
-    // Check was an object clicked?
-    if (intersects.length > 0)
-    {
-	var clicked = objs.getClosest(intersects[0].point);
-
-	console.log("clicked: " + clicked.name);
-
-	// If so, is there an object poised?
-
-	var poised = objs.getPoised();
-
-	if (poised)
+	// Check was an object clicked?
+	if (intersects.length > 0)
 	{
-	    // Did we click on an object in the air?
-	    if (poised == clicked)
+	    var clicked = objs.getClosest(intersects[0].point);
+
+	    console.log("clicked: " + clicked.name);
+
+	    // If so, is there an object poised?
+
+	    var poised = objs.getPoised();
+
+	    if (poised)
 	    {
-		poised.putdown();
+		// Did we click on an object in the air?
+		if (poised == clicked)
+		{
+		    poised.putdown();
+
+		} else {
+
+		    // If so, move the poised object onto the target object.
+		    poised.putTarget(clicked.top());
+		}
 
 	    } else {
 
-		// If so, move the poised object onto the target object.
-		poised.putTarget(clicked.top());
-	    }
+		// If not, poise the clicked object.
 
-	} else {
-
-	    // If not, poise the clicked object.
-
-	    if (clicked.upflag) {
-		clicked.putdown();
-	    } else {
-		clicked.pickup();
+		if (clicked.upflag) {
+		    clicked.putdown();
+		} else {
+		    clicked.pickup();
+		}
 	    }
 	}
     }
-
-
-
-}
-
-
 }
 
 function onWindowResize() {
@@ -567,50 +583,6 @@ function onWindowResize() {
     renderer.setSize( window.innerWidth, window.innerHeight );
 
 }
-
-//
-
-
-
-
-// function onDocumentMouseDown( event ) {
-
-//     event.preventDefault();
-
-//     var vector = new THREE.Vector3(
-// 	( event.clientX / window.innerWidth ) * 2 - 1,
-// 	    - ( event.clientY / window.innerHeight ) * 2 + 1,
-// 	0.5 );
-//     projector.unprojectVector( vector, camera );
-
-//     var raycaster = new THREE.Raycaster(
-// 	camera.position,
-// 	vector.sub( camera.position ).normalize() );
-
-//     var intersects = raycaster.intersectObjects( scene.children );
-
-//     console.log(intersects[0]);
-
-//     if ( intersects.length > 0 ) {
-
-// 	new TWEEN.Tween( intersects[ 0 ].object.position )
-// 	    .to( {
-// 		x: intersects[0].object.position.x,
-// 		y: Math.random() * 125,
-// 		z: intersects[0].object.position.z }, 2000 )
-// 	    .easing( TWEEN.Easing.Elastic.Out).start();
-
-/*	new TWEEN.Tween( intersects[ 0 ].object.rotation ).to( {
-	    x: Math.random() * 2 * Math.PI,
-	    y: Math.random() * 2 * Math.PI,
-	    z: Math.random() * 2 * Math.PI }, 2000 )
-	    .easing( TWEEN.Easing.Elastic.Out).start(); */
-
-//     }
-
-// }
-
-
 
 function animate() {
 
