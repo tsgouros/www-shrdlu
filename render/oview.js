@@ -1,9 +1,9 @@
-// needed commands:
-//   create a block/pyramid/box/whatever (at some place)
-//   pick up a block or whatever
-//   put it down
-//   move hand
+// To do list:
 
+// Change so that coordinates refer to a corner, as in shrdlu
+// Implement create object command,
+// Have shrdlu populate the screen
+// connect mover.lisp
 
 var container, stats;
 var camera, scene, renderer, projector;
@@ -17,7 +17,13 @@ animate();
 
 // This object interprets text commands into object motion commands.
 // The text commands are to be issued by a SHRDLU port and are in the
-// SHRDLU coordinates (where z is up).
+// SHRDLU coordinates.
+//
+// SHRDLU coordinates: x runs along the front of the screen, y is
+// depth, and z is height.  This means that to convert from SHRDLU to
+// three.js, {x: shrdlu.y, y: shrdlu.z, z: shrdlu.x}.  Also, the
+// control point of the shapes in SHRDLU is the lower left corner (and
+// nothing is ever rotated).
 function commands() {
     // commands are these:
     //  CREATE/NAME/TYPE/COLOR/DIMX/DIMY/DIMZ/POSX/POSY/POSZ
@@ -55,6 +61,8 @@ function commands() {
     {
 	cmdArray = string.split("/");
 
+	console.log(">>" + cmdArray.toString() + "<<");
+
 	switch ( cmdArray[0] )
 	{
 	case "CREATE":
@@ -73,6 +81,10 @@ function commands() {
 
 	case "RELEASE":
 	    this.release();
+	    break;
+
+	default:
+	    console.log('default');
 	    break;
 
 	}
@@ -98,6 +110,8 @@ function commands() {
     function grasp() {
 
 	this.objInHand = objs.getClosest(this.hand);
+
+	console.log("grasp: " + this.objInHand.name);
 
 	return this.objInHand;
     }
@@ -128,6 +142,7 @@ function blockCollection() {
     this.set = [];
 
     this.add = add;
+    this.addSC = addSC;
 
     this.getClosest = getClosest;
     this.getPoised = getPoised;
@@ -139,7 +154,14 @@ function blockCollection() {
 	this.set.push(new block(name, type, color, dimension, position));
     }
 
-
+    // Create and add a new block object using SHRDLU coordinate system
+    // where the control point is the front left corner of the object.
+    function addSC(name, type, color, dimension, position) {
+	var positionSC = {x: position.x + dimension.x / 2,
+			  y: position.y,
+			  z: position.z + dimension.z / 2};
+	this.add(name, type, color, dimension, positionSC);
+    }
     // Returns the object closest to the input position.  There will
     // be circumstances where this is not correct, but I think they
     // will be uncommon.
@@ -380,6 +402,7 @@ function block(name, type, color, dimension, position) {
 function init() {
 
     console.log("hello there");
+    console.log(document.URL);
 
     container = document.createElement( 'div' );
     document.body.appendChild( container );
@@ -406,21 +429,21 @@ function init() {
 
     camera.position.x = 300;
     camera.position.y = 300;
-    camera.position.z = 400;
+    camera.position.z = 1300;
 
     scene = new THREE.Scene();
 
     // Draw the grid that makes up the floor.
-    var size = 500, step = 25;
+    var size = 1200, step = 50;
 
     var geometry = new THREE.Geometry();
 
-    for ( var i = - size; i <= size; i += step ) {
+    for ( var i = 0; i <= size; i += step ) {
 
-	geometry.vertices.push( new THREE.Vector3( - size, 0, i ) );
+	geometry.vertices.push( new THREE.Vector3(   0, 0, i ) );
 	geometry.vertices.push( new THREE.Vector3(   size, 0, i ) );
 
-	geometry.vertices.push( new THREE.Vector3( i, 0, - size ) );
+	geometry.vertices.push( new THREE.Vector3( i, 0, 0 ) );
 	geometry.vertices.push( new THREE.Vector3( i, 0,   size ) );
 
     }
@@ -462,20 +485,47 @@ function init() {
     // temporary hacks and the system should add its objects via the
     // CREATE command in cmds.parse.
 
-    objs.add('cube1', "block", Math.random() * 0xffffff,
-		  {x: 50, y:50, z:50}, {x:0, y:0, z:0});
+     objs.addSC('B1', "block", 0xff0000,
+     	     {x: 100, y: 100, z: 100}, {x: 110, y:0, z:100});
 
-    objs.add('cube2', "block", Math.random() * 0xffffff,
-     		  {x: 50, y:50, z:50}, {x:100, y:0, z:100});
+    objs.addSC('B2', "pyramid", 0x00ff00,
+     	     {x: 100, y: 100, z: 100}, {x:110, y:100, z:100});
 
-    objs.add('cube3', "block", Math.random() * 0xffffff,
-     		  {x: 75, y:75, z:75}, {x:-100, y:0, z:100});
+     objs.addSC('B3', "block", 0x00ff00,
+      	     {x: 200, y: 200, z: 200}, {x:0, y:0, z:400});
 
-    objs.add('pyramid1', "pyramid", Math.random() * 0xffffff,
-     		  {x: 50, y:50, z:50}, {x:100, y:0, z:-100});
+     objs.addSC('B4', "pyramid", 0x0000ff,
+      	     {x: 200, y:200, z:200}, {x:640, y:1, z:640});
 
-    objs.add('box1', 'box', Math.random() * 0xffffff,
-     		  {x: 100, y:25, z:100}, {x:-100, y:0, z:-100});
+     objs.addSC('B5', "pyramid", 0xff0000,
+      		  {x: 100, y:300, z:100}, {x:100, y:200, z:500});
+
+     objs.addSC('B6', "block", 0xff0000,
+      		{x: 300, y:300, z:200}, {x:300, y:0, z:0});
+
+    objs.addSC('B7', "block", 0x00ff00,
+      	       {x: 250, y:200, z:200}, {x:240, y:300, z:0});
+
+    objs.addSC('B10', "block", 0x0000ff,
+      		  {x: 100, y:400, z:200}, {x:640, y:0, z:300});
+
+    objs.addSC('BOX', "box", 0xeeeeee,
+      		  {x: 376, y:100, z:376}, {x:600, y:0, z:600});
+
+//     objs.add('cube1', "block", Math.random() * 0xffffff,
+//                  {x: 50, y:50, z:50}, {x:0, y:0, z:0});
+
+//    objs.add('cube2', "block", Math.random() * 0xffffff,
+//                 {x: 50, y:50, z:50}, {x:100, y:0, z:100});
+
+//    objs.add('cube3', "block", Math.random() * 0xffffff,
+//                 {x: 75, y:75, z:75}, {x:-100, y:0, z:100});
+
+//     objs.add('pyramid1', "pyramid", Math.random() * 0xffffff,
+//                  {x: 50, y:50, z:50}, {x:100, y:0, z:-100});
+
+//     objs.add('box1', 'box', Math.random() * 0xffffff,
+//                  {x: 100, y:25, z:100}, {x:-100, y:0, z:-100});
 
     // Add all the objects to the scene.
     for (i = 0; i < objs.set.length; i++) {
@@ -594,14 +644,43 @@ function animate() {
     TWEEN.update();
 }
 
+var second = Math.round(Date.now()/5000);
 function render() {
 
     var timer = Date.now() * 0.0001;
 
-    camera.position.x = Math.cos( timer ) * 200;
-    camera.position.z = Math.sin( timer ) * 200;
+    camera.position.x = -800; //Math.cos( timer ) * 300;
+    camera.position.y = 450;
+    camera.position.z = 1000; //Math.sin( timer ) * 300;
+
+    scene.position.x = 500; scene.position.z = 500;
     camera.lookAt( scene.position );
+
 
     renderer.render( scene, camera );
 
+    if (Math.round(Date.now()/5000) > second) {
+
+	second = Math.round(Date.now()/5000);
+
+	var pop_url = "http://localhost:1337?actget=top";
+
+	xmlHttp = new XMLHttpRequest();
+	xmlHttp.onreadystatechange = ProcessRequest;
+	xmlHttp.open( "GET", pop_url, true );
+	xmlHttp.send( null );
+
+    }
+
+    function ProcessRequest()
+    {
+	if ( xmlHttp.readyState == 4 && xmlHttp.status == 200 )
+	{
+	    msg = xmlHttp.responseText;
+	    // trim off EOL
+            cmds.parse(msg.substring(0, msg.length - 1));
+        }
+    }
 }
+
+
