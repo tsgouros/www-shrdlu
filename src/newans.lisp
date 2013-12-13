@@ -187,14 +187,14 @@ TEST-LOOP
 	     (MAPC 'PRINT2
 		   (FROM (NB (SETQ XX (PARENT? (CADDAR AMB))))
 			 (N XX)))
-	     (PRINC '\"\.)
+	     (PRINT3 '\"\.)
 	     (TERPRI)
 	     (SAY DO YOU MEAN\:)
 	     (SETQ XX 0.)
-	     (MAPC #'(LAMBDA (POSS) (PRINT (SETQ XX (+ 1 XX)))
+	     (MAPC #'(LAMBDA (POSS) (PRINT3 (SETQ XX (+ 1 XX)))
 				   (MAPC 'PRINT2 (CADR POSS)))	       ;THE PARAPHRASE
 		   POSSIBILITIES)
-	     (PRINC '?)
+	     (PRINT3 '?)
 	     (TERPRI)
 	READ (SETQ XX (READ))
 	     (COND ((OR (NOT (NUMBERP XX))
@@ -677,7 +677,7 @@ TEST-LOOP
 		   (NAMEACTION 'ING (CAR ANS))
 		   (MAPCAN 
 		    '(LAMBDA (X) 
-			     (CONS '(PRINC '\;)
+			     (CONS '(PRINT3 '\;)
 				   (CONS '(SAY THEN)
 					 (NAMEACTION 'ING X))))
 		    (CDR ANS))))))
@@ -815,7 +815,7 @@ TEST-LOOP
 				      (CAR RES))))
 		   ((SETQ ANS (APPEND ANS
 				      (AND COMMA?
-					   '((PRINC '\,)))
+					   '((PRINT3 '\,)))
 				      '((SAY AND))
 				      (CAR RES)))))
 	     (GO OUTPUT)))

@@ -25,6 +25,12 @@
                 `(,',subr-name ',,fexpr-arg))
       	      (defun ,subr-name (,fexpr-arg) ,@fexpr-body)
               ',fexpr-name)))
+; defines a function that operates on the remainder of the list of
+; which it is a part and an "apply-" function that operates on a list.
+; So if you defun-fexpr bob, you get a function that will work like
+; this: (bob arg1 arg2 arg3 ... argn) and another like this:
+; (apply-bob '(arg1 arg2 ... argn)).
+
 
 ; With the following rewrites:
 ; (defun bob fexpr (x) ...) as (defun-fexpr bob (x) ...)

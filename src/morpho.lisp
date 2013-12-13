@@ -64,8 +64,8 @@
 
 (defvar remote-chars "" 
   "buffer to hold characters received from the remote source")
-(defvar remote-chars-p t 
-  "whether we're getting our characters remotely or not.")
+(defvar remote-chars-p nil
+  "whether we're getting our characters remotely or not.  Set to t to use web interface.")
 
 (DEFUN ETAOIN NIL 
        (PROG (WORD NEWWORD CHAR ALTN ALREADY-BLGING-NEWWRD WRD LAST
@@ -292,10 +292,10 @@
 			    (GO WRD)))
 	     (TERPRI)
 	     (SAY *SORRY I DON\'T KNOW THE WORD \")
-	     (PRINC WRD)
-	     (PRINC '\ \"\.)
+	     (PRINT3 WRD)
+	     (PRINT3 '\ \"\.)
 	     (TERPRI)
-	     (SAY PLEASE TYPE <LF> AND CONTINUE THE SENTENCE\.)
+	     (SAY PLEASE CONTINUE THE SENTENCE AND TYPE <Enter>\.)
 	NOGO (OR (CHAR= (READ-CHAR-REMOTE) (CODE-CHAR 10.)) (GO NOGO))
 	     (SETQ PUNCT NIL WORD NIL)
 	     (GO DO)
