@@ -5,10 +5,33 @@
 // Have shrdlu populate the screen
 // connect mover.lisp
 
+var stdColors = {"aqua":"#00ffff","black":"#000000","blue":"#0000ff",
+		 "brown":"#a52a2a", "chartreuse":"#7fff00",
+		 "cyan":"#00ffff", "darkblue":"#00008b",
+		 "darkcyan":"#008b8b", "darkgray":"#a9a9a9",
+		 "darkgreen":"#006400", "darkmagenta":"#8b008b",
+		 "darkorange":"#ff8c00", "darkred":"#8b0000",
+		 "darkviolet":"#9400d3", "dimgray":"#696969",
+		 "fuchsia":"#ff00ff", "gold":"#ffd700",
+		 "gray":"#808080", "green":"#00ff00", "indigo ":"#4b0082",
+		 "ivory":"#fffff0", "lavender":"#e6e6fa",
+		 "lightcyan":"#e0ffff", "lightgrey":"#d3d3d3",
+		 "lightgreen":"#90ee90", "lightyellow":"#ffffe0",
+		 "magenta":"#ff00ff", "maroon":"#800000",
+		 "mediumblue":"#0000cd", "mediumpurple":"#9370d8",
+		 "navy":"#000080", "olive":"#808000", "orange":"#ffa500",
+		 "pink":"#ffc0cb", "purple":"#800080", "red":"#ff0000",
+		 "royalblue":"#4169e1", "silver":"#c0c0c0",
+		 "skyblue":"#87ceeb", "tan":"#d2b48c", "violet":"#ee82ee",
+		 "white":"#ffffff", "yellow":"#ffff00"};
+
 var container, stats;
 var camera, scene, renderer, projector;
 var objs = new blockCollection();
 var cmds = new commands();
+
+var targetRotation = 2.3;
+var targetRotationOnMouseDown = 2.3;
 
 var pickupHeight = 125;
 
@@ -54,6 +77,7 @@ function commands() {
     this.move = move;
     this.grasp = grasp;
     this.release = release;
+    this.blink = blink;
 
     // Parses a command string into a method and its arguments, and
     // invokes the methods on the arguments.
@@ -61,42 +85,93 @@ function commands() {
     {
 	cmdArray = string.split("/");
 
-	console.log(">>" + cmdArray.toString() + "<<");
-
 	switch ( cmdArray[0] )
 	{
 	case "CREATE":
-	    this.create(cmdArray);
+	    this.create(cmdArray[1], cmdArray[2], cmdArray[3],
+			{x: parseInt(cmdArray[5]),
+			 y: parseInt(cmdArray[6]),
+			 z: parseInt(cmdArray[4])},
+			{x: parseInt(cmdArray[8]),
+			 y: parseInt(cmdArray[9]),
+			 z: parseInt(cmdArray[7])} );
+
+	    console.log(">>" + cmdArray.toString() + "<<");
+
 	    break;
 
+	    // change to SHRDLU coordinates
 	case "MOVE":
-	    this.move({x: parseInt(cmdArray[1]),
-		       y: parseInt(cmdArray[2]),
-		       z: parseInt(cmdArray[3])});
+	    this.move({x: parseInt(cmdArray[2]),
+		       y: parseInt(cmdArray[3]),
+		       z: parseInt(cmdArray[1])});
+
+	    console.log(">>" + cmdArray.toString() + "<<");
+
 	    break;
 
 	case "GRASP":
-	    this.grasp();
+	    var targetName;
+
+	    if (cmdArray.length > 1) {
+		targetName = cmdArray[1];
+	    } else {
+		targetName = "";
+	    }
+
+	    this.grasp(targetName);
+
+	    console.log(">>" + cmdArray.toString() + "<<");
+
 	    break;
 
 	case "RELEASE":
 	    this.release();
+
+	    console.log(">>" + cmdArray.toString() + "<<");
+
+	    break;
+
+	case "BLINK":
+	    var targetName;
+
+	    if (cmdArray.length > 1) {
+		targetName = cmdArray[1];
+	    } else {
+		targetName = "";
+	    }
+
+	    this.blink(targetName);
+
+	    console.log(">>" + cmdArray.toString() + "<<");
+
 	    break;
 
 	default:
-	    console.log('default');
+	//    console.log('default');
 	    break;
 
 	}
     }
 
 
-    function create(cmdArray) {
-	return null;
+    function create(name, type, color, dim, pos) {
+
+	var nobj = objs.addSC(name, type.toLowerCase(),
+			      stdColors[color.toLowerCase()],
+			      dim, pos);
+
+	nobj = objs.set[-1 + objs.set.length];
+
+	console.log("added " + nobj.name + " " + nobj.type);
+
+	scene.add(nobj.obj);
+
     }
 
     function move(position) {
-	console.log("MOVE HAND TO: " + position.toString());
+	console.log("MOVE HAND TO: " +
+		    position.x + ", " + position.y + ", " + position.z);
 	this.hand = position;
 
 	if (this.objInHand)
@@ -107,13 +182,47 @@ function commands() {
 	return null;
     }
 
-    function grasp() {
+    function grasp(targetName) {
 
-	this.objInHand = objs.getClosest(this.hand);
+	if (targetName) {
+
+	    this.objInHand = objs.getByName(targetName);
+
+	} else {
+
+	    this.objInHand = objs.getClosest(this.hand);
+
+	}
 
 	console.log("grasp: " + this.objInHand.name);
 
 	return this.objInHand;
+    }
+
+    function blink(targetName) {
+
+	var blinkobj;
+
+	if (targetName) {
+
+	    blinkobj = objs.getByName(targetName);
+
+	} else {
+
+	    blinkobj = objs.getClosest(this.hand);
+
+	}
+
+	if (blinkobj) {
+	    console.log("blink: " + blinkobj.name);
+
+	    blinkobj.blink();
+
+	} else {
+	    console.log("no such name");
+	}
+
+	return;
     }
 
     function release() {
@@ -145,13 +254,15 @@ function blockCollection() {
     this.addSC = addSC;
 
     this.getClosest = getClosest;
+    this.getClosestSC = getClosestSC;
     this.getPoised = getPoised;
+    this.getByName = getByName;
 
     this.floor = floor;
 
     // Create and add a new block object to the set.
     function add(name, type, color, dimension, position) {
-	this.set.push(new block(name, type, color, dimension, position));
+	return this.set.push(new block(name, type, color, dimension, position));
     }
 
     // Create and add a new block object using SHRDLU coordinate system
@@ -160,8 +271,9 @@ function blockCollection() {
 	var positionSC = {x: position.x + dimension.x / 2,
 			  y: position.y,
 			  z: position.z + dimension.z / 2};
-	this.add(name, type, color, dimension, positionSC);
+	return this.add(name, type, color, dimension, positionSC);
     }
+
     // Returns the object closest to the input position.  There will
     // be circumstances where this is not correct, but I think they
     // will be uncommon.
@@ -187,6 +299,35 @@ function blockCollection() {
 	return out;
     }
 
+    // Returns the object closest to the input position in SHRDLU
+    // coordinates.  Basically this only means that an object's
+    // control point is its lower left corner.
+    function getClosestSC(position)
+    {
+	var out = null;
+	var min = 1.0e35;
+
+	for (var i = 0; i < this.set.length; i++)
+	{
+
+	    var controlPt = this.set[i].controlPt();
+
+	    var dist =
+		Math.pow(position.x - controlPt.x, 2) +
+		Math.pow(position.y - controlPt.y, 2) +
+		Math.pow(position.z - controlPt.z, 2);
+
+	    if (dist < min)
+	    {
+		out = this.set[i];
+		min = dist;
+	    }
+	}
+
+	return out;
+    }
+
+
     // Returns the object that is up (i.e. poised to be put somewhere).
     function getPoised()
     {
@@ -200,6 +341,19 @@ function blockCollection() {
 	return null;
     }
 
+    // Returns the object of the given name.  Remove
+    function getByName(targetName)
+    {
+
+	for (var i = 0; i < this.set.length; i++)
+	{
+	    if (this.set[i].name == targetName)
+	    {
+		return this.set[i];
+	    }
+	}
+	return null;
+    }
 
     // returns zero if no object is below the input position.  But if
     // there are any objects at this position, returns the height of
@@ -209,6 +363,12 @@ function blockCollection() {
 	var out = 0;
 	for (i = 0 ; i < this.set.length; i++)
 	{
+
+	    // console.log(this.set[i].name + ">>top>>" + 
+	    // 		this.set[i].onTop(position).toString());
+	    // console.log(JSON.stringify(position) + 
+	    // 		JSON.stringify(this.set[i].obj.position));
+
 	    out = Math.max(out, this.set[i].onTop(position));
 	}
 
@@ -238,8 +398,13 @@ function block(name, type, color, dimension, position) {
     this.putdown = putdown;
     this.putTarget = putTarget;
 
+    this.blink = blink;
+
     this.onTop = onTop;
     this.top = top;
+
+    // SHRDLU thinks an object's control point is the min(x), min(y), min(z).
+    this.controlPt = controlPt;
 
     // Indicates whether the object is up in the sense of being ready
     // to be put down somewhere.  That is, an object can be "up"
@@ -287,8 +452,6 @@ function block(name, type, color, dimension, position) {
     // them slightly.
     if (this.type == "pyramid") this.obj.rotation.y = Math.PI/4;
 
-    console.log(position.x);
-
     this.obj.position.x = position.x;
     this.obj.position.y = position.y + (dimension.y / 2);
     this.obj.position.z = position.z;
@@ -321,9 +484,9 @@ function block(name, type, color, dimension, position) {
     {
 	var out;
 
-	if ((position.x == this.obj.position.x) &&
-	    (position.y == this.obj.position.y) &&
-	    (position.z == this.obj.position.z)) {
+	if (Math.sqrt(Math.pow(position.x - this.obj.position.x, 2) + 
+		      Math.pow(position.y - this.obj.position.y, 2) +
+		      Math.pow(position.z - this.obj.position.z, 2)) < 10) {
 	    return 0;
 	}
 
@@ -333,12 +496,12 @@ function block(name, type, color, dimension, position) {
 	    if ((this.obj.position.z - (this.dimension.z / 2) < position.z) &&
 		(position.z < (this.obj.position.z + (this.dimension.z / 2))))
 	    {
-		out = this.obj.position.y + this.dimension.y / 2;
-		console.log("here:" + out);
+
+		out = this.top().y; //obj.position.y + this.dimension.y / 2;
 		return out;
 	    }
 	}
-	console.log("zero");
+
 	return 0;
     }
 
@@ -396,6 +559,21 @@ function block(name, type, color, dimension, position) {
 	this.upflag = false;
     }
 
+    // Returns the SHRDLU control point for this object.
+    function controlPt()
+    {
+	return {x: this.obj.position.x - this.dimension.x / 2,
+		y: this.obj.position.y - this.dimension.y / 2,
+		z: this.obj.position.z - this.dimension.z / 2 };
+    }
+
+    // currently a NOP.  Not sure what its purpose is in SHRDLU.
+    function blink()
+    {
+	console.log(this.name + " is blinking!");
+
+	return;
+    }
 }
 
 // Sets everything up.
@@ -485,32 +663,32 @@ function init() {
     // temporary hacks and the system should add its objects via the
     // CREATE command in cmds.parse.
 
-     objs.addSC('B1', "block", 0xff0000,
-     	     {x: 100, y: 100, z: 100}, {x: 110, y:0, z:100});
+    objs.addSC('B1', "block", 0xff0000,
+     	       {x: 100, y: 100, z: 100}, {x: 110, y:0, z:100});
 
     objs.addSC('B2', "pyramid", 0x00ff00,
-     	     {x: 100, y: 100, z: 100}, {x:110, y:100, z:100});
+     	       {x: 100, y: 100, z: 100}, {x:110, y:100, z:100});
 
-     objs.addSC('B3', "block", 0x00ff00,
-      	     {x: 200, y: 200, z: 200}, {x:0, y:0, z:400});
+    objs.addSC('B3', "block", 0x00ff00,
+      	       {x: 200, y: 200, z: 200}, {x:0, y:0, z:400});
 
-     objs.addSC('B4', "pyramid", 0x0000ff,
-      	     {x: 200, y:200, z:200}, {x:640, y:1, z:640});
+    objs.addSC('B4', "pyramid", 0x0000ff,
+      	       {x: 200, y:200, z:200}, {x:640, y:1, z:640});
 
-     objs.addSC('B5', "pyramid", 0xff0000,
-      		  {x: 100, y:300, z:100}, {x:100, y:200, z:500});
+    objs.addSC('B5', "pyramid", 0xff0000,
+      	       {x: 100, y:300, z:100}, {x:100, y:200, z:500});
 
-     objs.addSC('B6', "block", 0xff0000,
-      		{x: 300, y:300, z:200}, {x:300, y:0, z:0});
+    objs.addSC('B6', "block", 0xff0000,
+      	       {x: 300, y:300, z:200}, {x:300, y:0, z:0});
 
     objs.addSC('B7', "block", 0x00ff00,
       	       {x: 250, y:200, z:200}, {x:240, y:300, z:0});
 
     objs.addSC('B10', "block", 0x0000ff,
-      		  {x: 100, y:400, z:200}, {x:640, y:0, z:300});
+      	       {x: 100, y:400, z:200}, {x:640, y:0, z:300});
 
-    objs.addSC('BOX', "box", 0xeeeeee,
-      		  {x: 376, y:100, z:376}, {x:600, y:0, z:600});
+    objs.addSC('BOX', "box", 0xffffff,
+      	       {x: 376, y:100, z:376}, {x:599, y:0, z:599});
 
 //     objs.add('cube1', "block", Math.random() * 0xffffff,
 //                  {x: 50, y:50, z:50}, {x:0, y:0, z:0});
@@ -570,54 +748,37 @@ function init() {
 
 	event.preventDefault();
 
-	var vector = new THREE.Vector3(
- 	    ( event.clientX / window.innerWidth ) * 2 - 1,
- 		- ( event.clientY / window.innerHeight ) * 2 + 1,
- 	    0.5 );
+	document.addEventListener('mousemove', onDocumentMouseMove, false);
+	document.addEventListener('mouseup', onDocumentMouseUp, false);
+	document.addEventListener('mouseout', onDocumentMouseOut, false);
 
-	projector.unprojectVector( vector, camera );
+	mouseXOnMouseDown = event.clientX - window.innerWidth / 2;
+	targetRotationOnMouseDown = targetRotation;
+    }
 
-	var raycaster = new THREE.Raycaster(
-	    camera.position,
- 	    vector.sub( camera.position ).normalize() );
+    function onDocumentMouseMove( event ) {
 
-	var intersects = raycaster.intersectObjects( scene.children );
+	mouseX = event.clientX - window.innerWidth / 2;
 
-	// Check was an object clicked?
-	if (intersects.length > 0)
-	{
-	    var clicked = objs.getClosest(intersects[0].point);
+	targetRotation = targetRotationOnMouseDown +
+	    2 * Math.PI * ( mouseX - mouseXOnMouseDown ) / window.innerWidth ;
 
-	    console.log("clicked: " + clicked.name);
+    }
 
-	    // If so, is there an object poised?
+    function onDocumentMouseUp( event ) {
 
-	    var poised = objs.getPoised();
+	document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+	document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
 
-	    if (poised)
-	    {
-		// Did we click on an object in the air?
-		if (poised == clicked)
-		{
-		    poised.putdown();
+    }
 
-		} else {
+    function onDocumentMouseOut( event ) {
 
-		    // If so, move the poised object onto the target object.
-		    poised.putTarget(clicked.top());
-		}
+	document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+	document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
 
-	    } else {
-
-		// If not, poise the clicked object.
-
-		if (clicked.upflag) {
-		    clicked.putdown();
-		} else {
-		    clicked.pickup();
-		}
-	    }
-	}
     }
 }
 
@@ -644,14 +805,16 @@ function animate() {
     TWEEN.update();
 }
 
-var second = Math.round(Date.now()/5000);
+function getSecond() { return Math.round(Date.now()/2000); }
+
+var second = getSecond();
 function render() {
 
     var timer = Date.now() * 0.0001;
 
-    camera.position.x = -800; //Math.cos( timer ) * 300;
+    camera.position.x = 1000 * Math.cos( targetRotation );
     camera.position.y = 450;
-    camera.position.z = 1000; //Math.sin( timer ) * 300;
+    camera.position.z = 1000 * Math.sin( targetRotation );
 
     scene.position.x = 500; scene.position.z = 500;
     camera.lookAt( scene.position );
@@ -659,9 +822,10 @@ function render() {
 
     renderer.render( scene, camera );
 
-    if (Math.round(Date.now()/5000) > second) {
+    var testSecond = getSecond();
+    if (testSecond > second) {
 
-	second = Math.round(Date.now()/5000);
+	second = testSecond;
 
 	var pop_url = "http://localhost:1337?actget=top";
 

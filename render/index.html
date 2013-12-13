@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Viva SHRDLU!</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+      body {
+      background-color: #f0f0ff;
+      margin: 0px;
+      overflow: hidden;
+      position:relative;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="import/three.min.js"></script>
+    <script src="import/stats.min.js"></script>
+    <script src="import/tween.min.js"></script>
+    <script src="box.js"></script>
+    <script src="oview.js"></script>
+    <!-- Code to display an information button and box when clicked. -->
+
+    <script src="http://stemkoski.github.io/Three.js/js/jquery-1.9.1.js"></script>
+    <script src="http://stemkoski.github.io/Three.js/js/jquery-ui.js"></script>
+    <link rel=stylesheet href="http://stemkoski.github.io/Three.js/css/jquery-ui.css" />
+    <link rel=stylesheet href="import/info.css"/>
+    <script src="info.js"></script>
+    <div id="infoButton"></div>
+    <div id="infoBox" title="SHRDLU Communicates">
+      <div id="infoScroll" >
+	<p>There is nothing but the table.</p>
+      </div>
+      <div id="enterText">
+	<form action="/" id="sentenceForm">
+	  <input type="text" name="cmd" id="cmdbox" size="50" autofocus/>
+	  <input type="submit" name="Submit"/>
+	</form>
+      </div>
+    </div>
+  </body>
+</html>

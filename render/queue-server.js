@@ -1,17 +1,32 @@
+var sys = require("sys");
 var http = require('http');
 var url = require('url');
+var path = require('path');
+var fs = require('fs');
+
 var moveQueue = Array();
 var cmdQueue = Array();
+var resQueue = Array();
+
+var counter = 0;
 
 http.createServer(function (request, response) {
     var pathname = url.parse(request.url).pathname;
     var queryData  = url.parse(request.url, true).query;
 
-    console.log('processing request' + pathname + queryData);
+    counter++;
+
+    if (pathname == "/") {
+	pathname = "/index.html";
+    }
+
+    console.log('processing request (' + counter.toString() + '): ' + pathname);
     console.log('act-->' + queryData.act);
     console.log('actget-->' + queryData.actget);
     console.log('cmd-->' + queryData.cmd);
     console.log('cmdget-->' + queryData.cmdget);
+    console.log('res-->' + queryData.res);
+    console.log('resget-->' + queryData.resget);
 
     var out;
 
@@ -51,19 +66,79 @@ http.createServer(function (request, response) {
 	    out = 'empty';
 
 	}
+
+    } else if (queryData.res) {
+
+	resQueue.push(queryData.res);
+
+	out = queryData.res;
+
+    } else if (queryData.resget) {
+
+	if (resQueue.length >0) {
+
+	    out = resQueue[0];
+	    resQueue.splice(0, 1);
+
+	} else {
+
+	    out = 'empty';
+
+	}
+
     } else {
 
-	out = 'error';
+	// No query string.  Must just want a file.
+	var filename = path.join(process.cwd(), pathname);
+	fs.exists(filename, function(exists) {
+    	    if (!exists) {
+    		response.writeHead(404, {"Content-Type": "text/plain"});
+    		response.end("404 Not Found\n");
+    	    } else {
+    		fs.readFile(filename, "binary", function(err, file) {
+    		    if(err) {
+    			response.writeHead(500, {"Content-Type": "text/plain"});
+    			response.end(err + "\n");
+    		    } else {
 
+			if (filename.match(/\.js/g)) {
+			    response.writeHead(200, {"Content-Type": "application/javascript"});
+			    response.write(file, "utf8");
+
+			} else if (filename.match(/\.css/g)) {
+			
+			    response.writeHead(200, {"Content-Type": "text/css"});
+			    response.write(file, "utf8");
+
+			} else if (filename.match(/\.png/g)) {
+			
+			    response.writeHead(200, {"Content-Type": "image/png"});
+			    response.write(file, "binary");
+
+			} else {
+
+			    response.write(file, "utf8");
+			}
+    			response.end();
+		    }
+		});
+	    }
+	});
+
+	out = '';
     }
 
     console.log("moveQueue");
     console.log(moveQueue);
     console.log("cmdQueue");
     console.log(cmdQueue)
+    console.log("resQueue");
+    console.log(resQueue)
 
-    response.writeHead(200, {'Content-Type': 'text/plain'});
-    response.end(out + '\n');
+    if (out) {
+	response.writeHead(200, {'Content-Type': 'text/plain'});
+	response.end(out + '\n');
+    }
 
 }).listen(1337, '127.0.0.1');
 
