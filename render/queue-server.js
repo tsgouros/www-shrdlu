@@ -9,6 +9,7 @@ var cmdQueue = Array();
 var resQueue = Array();
 
 var counter = 0;
+var outstring = '-empty-';
 
 http.createServer(function (request, response) {
     var pathname = url.parse(request.url).pathname;
@@ -45,7 +46,7 @@ http.createServer(function (request, response) {
 
 	} else {
 
-	    out = 'empty';
+	    out = outstring;
 
 	}
     } else if (queryData.cmd) {
@@ -63,7 +64,7 @@ http.createServer(function (request, response) {
 
 	} else {
 
-	    out = 'empty';
+	    out = outstring;
 
 	}
 
@@ -82,7 +83,7 @@ http.createServer(function (request, response) {
 
 	} else {
 
-	    out = 'empty';
+	    out = outstring;
 
 	}
 

@@ -14,7 +14,10 @@
   (WITH-OPEN-STREAM (socket (SOCKET:SOCKET-CONNECT port host :EXTERNAL-FORMAT :DOS))
      (FORMAT socket "GET ~A HTTP/1.0~2%" page)
      ;; dump the whole thing - header+data
-     (LOOP :for line = (READ-LINE socket nil nil) :while line)))
+     (let ((out ""))
+       (LOOP :for line = (READ-LINE socket nil nil) :while line 
+	  :do (setq out line))
+       out)))
 
 (defun shrdlu-move (cmd)
   (socket-cmd "localhost" (format nil "/?act=~A" cmd) 1337))

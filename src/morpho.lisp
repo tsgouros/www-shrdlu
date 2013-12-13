@@ -8,22 +8,77 @@
 ;;;********************************************************************************
 
 ;; my experimental version...
-(defun etaoinrish nil
+(defun etao nil
   (prog (WORD NEWWORD CHAR ALTN ALREADY-BLGING-NEWWRD WRD LAST
-	      NEXT Y WORD1 X RD POSS) 
-     thru  (SETQ SENT (SETQ WORD (SETQ PUNCT (SETQ POSS NIL))))
-	     (PRINT 'READY)
-	     (TERPRI)))
+	 NEXT Y WORD1 X RD POSS) 
+   THRU  (SETQ SENT (SETQ WORD (SETQ PUNCT (SETQ POSS NIL))))
+         (PRINT 'READY)
+	 (TERPRI)
+    CHAR (COND ((EQUAL (PEEK-CHAR) #\~)
+		(READ-CHAR) (ERT) (GO THRU))) ; BREAK
+         (SETQ CHAR (ASCII (CHAR-UPCASE (READ-CHAR))))
+	 (COND ((EQ CHAR '\ ) (setq WORD (cons WORD CHAR)))           ;DELIMITER
+	       ((EQ CHAR RUBOUT)
+		(COND (WORD (PRINC (CAR WORD))
+			    (SETQ WORD (CDR WORD)))
+		      (SENT (PRINT (CAR SENT))
+			    (SETQ SENT (CDR SENT))))
+		(GO CHAR))
+	       ((EQ CHAR CARRET) (setq WORD (cons WORD CHAR)))
+	       ((MEMQ CHAR PUNCL)
+		(SETQ PUNCT CHAR)	       ;DELIMITER
+		(AND WORD (setq WORD (cons WORD CHAR))))
+	       (t 
+		(setq WORD (cons WORD CHAR))
+		(print WORD)
+		(go CHAR)))
+		
+	 (print WORD)
+	 (AND WORD (go THRU))))
+
+;	 (print (format nil ">>>~s>> " CHAR))
+;	 (go THRU)))
+
+
+(defun peek-char-remote () 
+  (if remote-chars-p 
+      (progn
+	(reload-remote-chars)
+	(char remote-chars 0))
+      (peek-char)))
+(defun read-char-remote () 
+  (if remote-chars-p 
+      (progn
+	(reload-remote-chars)
+	(let ((outchar (char remote-chars 0)))
+	  (setq remote-chars (subseq remote-chars 1))
+	  outchar))
+      (read-char)))
+
+(defun reload-remote-chars ()
+  (if (= 0 (length remote-chars))
+      (loop :for tmp = (setq remote-chars 
+			     (socket-cmd "localhost" "/?cmdget=top" 1337))
+	 :while (equal tmp "-empty-") 
+	 :do (sleep 0.2))))
+
+(defvar remote-chars "" 
+  "buffer to hold characters received from the remote source")
+(defvar remote-chars-p t 
+  "whether we're getting our characters remotely or not.")
 
 (DEFUN ETAOIN NIL 
        (PROG (WORD NEWWORD CHAR ALTN ALREADY-BLGING-NEWWRD WRD LAST
 	      NEXT Y WORD1 X RD POSS) 
+	  ;; WORD is accumulating letters in a word, and SENT accumulates 
+	  ;; words in a sentence.  Both have to be reversed to make sense.
 	THRU (SETQ SENT (SETQ WORD (SETQ PUNCT (SETQ POSS NIL))))
-	     (PRINT 'READY)
+	     (PRINT 'READY1)
 	     (TERPRI)
-	CHAR (COND ((EQUAL (PEEK-CHAR) #\~)
-	                  (READ-CHAR) (ERT) (GO THRU))) ; BREAK
-	     (SETQ CHAR (ASCII (CHAR-UPCASE (READ-CHAR))))
+	CHAR (COND ((EQUAL (PEEK-CHAR-REMOTE) #\~)
+	                  (READ-CHAR-REMOTE) (ERT) (GO THRU))) ; BREAK
+	     (COND ((EQUAL (PEEK-CHAR-REMOTE) #\@) (read-char-remote) (go OUT)))
+	     (SETQ CHAR (ASCII (CHAR-UPCASE (READ-CHAR-REMOTE))))
     	     (COND ((EQ CHAR '\ ) (GO WORD))           ;DELIMITER
 		   ((EQ CHAR RUBOUT)
 		    (COND (WORD (PRINC (CAR WORD))
@@ -54,7 +109,7 @@
 		  (MEMQ CHAR CONSO))
 	      (SETQ WORD (CONS CHAR WORD)))
 	     (GO CHAR)
-	DO   (PRINT 'READY)
+	DO   (PRINT 'READY2)
 	     (TERPRI)
 	     (MAPC #'(LAMBDA (X) (PRINT2 X)) (REVERSE SENT))
 	     (PRINC '\ )
@@ -241,9 +296,10 @@
 	     (PRINC '\ \"\.)
 	     (TERPRI)
 	     (SAY PLEASE TYPE <LF> AND CONTINUE THE SENTENCE\.)
-	NOGO (OR (CHAR= (READ-CHAR) (CODE-CHAR 10.)) (GO NOGO))
+	NOGO (OR (CHAR= (READ-CHAR-REMOTE) (CODE-CHAR 10.)) (GO NOGO))
 	     (SETQ PUNCT NIL WORD NIL)
-	     (GO DO))) 
+	     (GO DO)
+        OUT  (print (format nil "~A:~A" SENT WORD)))) 
 
 (DEFUN PROPNAME (X) (EQ (CAR (EXPLODE X)) '=)) 
 
