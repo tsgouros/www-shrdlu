@@ -1143,7 +1143,7 @@ FDEC    (FQ DECLAR)
 	 ;;;
 	 ;;;
 	 ;;;--------------------------------------------------
-	 ;; IF AT FIRST YOU DON'T SUCEED.......
+	 ;; IF AT FIRST YOU DON'T SUCCEED.......
 	 ;;;--------------------------------------------------
     RED0 (SETQ FE T1)
     RED1 (SHRDLU-POP)
