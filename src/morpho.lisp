@@ -112,8 +112,8 @@
 	DO   (PRINT 'READY2)
 	     (TERPRI)
 	     (MAPC #'(LAMBDA (X) (PRINT2 X)) (REVERSE SENT))
-	     (PRINC '\ )
-	     (MAPC #'PRINC (REVERSE WORD))
+	     (PRINT2 '\ ) ;; was princ
+	     (MAPC #'PRINT2 (REVERSE WORD)) ;; was princ
 	     (GO CHAR)
 	WORD (COND ((NULL WORD) (GO CHAR))
 		   ((EQUAL WORD '(P L E H)) (HELP) (GO THRU))

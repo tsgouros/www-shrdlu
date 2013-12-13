@@ -529,11 +529,11 @@
 (DEFUN PRINT2 (X) 
        (COND ((> CHRCT (FLATSIZE X)) (PRINC '\ ))
 	     (T (TERPRI)))
-       (PRINC X)) 
+       (PRINC (string-downcase X))) 
 
 (DEFUN PRINT3 (X) 
        (PROG2 (OR (> CHRCT (FLATSIZE X)) (TERPRI))
-	      (PRINC X)
+	      (PRINC (string-downcase X))
 	      (PRINC '\ ))) 
 
 (DEFUN PRINTEXT (TEXT) 
