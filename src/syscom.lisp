@@ -380,7 +380,7 @@
 		  (RETURN T))
 	     (SETQ ERT-TIME (GET-INTERNAL-RUN-TIME))
 	     (TERPRI)
-	     (MAPC #'PRINT3 MESSAGE)
+	     (MAPC #'PRINT4 MESSAGE) ;; was print3
 	PRINT(SETQ FIRSTWORD T ST-BUFFER NIL BUILDING-ST-FORM NIL)     ;"ST" REFERS TO SHOW, TELL.
 	     (COND (ZOG-USER (PRINT 'LISTENING--->))
 		   (T (PRINT '>>>)))
@@ -526,15 +526,81 @@
 				   ALIST)))))
     A)))
 
+(defvar response-buffer "" "Used to reply to the user in dialog.")
+
+;; This is just to pretty up the output.
+(defun fix-sentence-spacing (s)
+  "This function operates on entire sentences.  It removes double
+spaces and attempts to fix punctuation and quotation mark spacing.
+Tries to capitalize 'I', too."
+  (let ((out '())
+	(quotedp nil)
+	(maxindex (- (length s) 1)))
+    (loop
+       for c from 0 to maxindex
+       do (let ((previous-char (char s (max 0 (- c 1))))
+		(current-char (char s c))
+		(next-char (char s (min (+ c 1) maxindex))))
+	    ;; eliminate inappropriate spaces next to quotation marks
+	    (if (char= current-char #\") 
+		(setq quotedp (not quotedp)))
+	    (cond
+	      ;; eliminate double spaces and spaces before final punctuation.
+	      ((char= current-char #\ )
+	       (if (and (not (char= previous-char #\ ))
+			(not (member next-char '(#\. #\? #\!)))
+			(not (and quotedp
+				  (char= previous-char #\")))
+			(not (and quotedp
+				  (char= next-char #\"))))
+		   (setq out (cons current-char out))))
+	      ((char= current-char #\i)
+	       (if (and (or (= c 0)
+			    (char= previous-char #\ ))
+			(or (char= next-char #\ )
+			    (char= next-char #\')))
+		   (setq out (cons #\I out))
+		   (setq out (cons current-char out))))
+	      (t
+	       (setq out (cons current-char out))))))
+    (coerce (reverse out) 'string)))
+       
+(defun show-response () 
+  (if remote-chars-p
+      (progn
+	(princ (fix-sentence-spacing response-buffer)))
+      (progn
+	(terpri)
+	(princ (fix-sentence-spacing response-buffer))))
+  (setq response-buffer ""))
+
 (DEFUN PRINT2 (X) 
-       (COND ((> CHRCT (FLATSIZE X)) (PRINC '\ ))
-	     (T (TERPRI)))
-       (PRINC (string-downcase X))) 
+  (COND ((> CHRCT (FLATSIZE X)) (PRINC '\ ))
+	(T (TERPRI)))
+  (setq response-buffer
+	(concatenate 'string 
+		     response-buffer 
+		     (if (or (stringp X) (symbolp X))
+			 (format nil " ~A" (string-downcase X))
+			 (format nil " ~S" X)))))
 
 (DEFUN PRINT3 (X) 
-       (PROG2 (OR (> CHRCT (FLATSIZE X)) (TERPRI))
-	      (PRINC (string-downcase X))
-	      (PRINC '\ ))) 
+  (PROG2 (OR (> CHRCT (FLATSIZE X)) (TERPRI))
+      (setq response-buffer 
+	    (concatenate 'string 
+			 response-buffer 
+			 (if (or (stringp X) (symbolp X))
+			     (format nil "~A " (string-downcase X))
+			     (format nil "~S " X))))))
+
+;; added this for print3 instances that don't need to be remote-capable.
+;; Admittedly a lame name, but what can you do?
+(DEFUN PRINT4 (X)  
+  (PROG2 (OR (> CHRCT (FLATSIZE X)) (TERPRI))
+      (PRINC X)
+    (PRINC '\ ))) 
+
+
 
 (DEFUN PRINTEXT (TEXT) 
        (COND (TEXT (TERPRI)

@@ -40,12 +40,24 @@
 ;	 (go THRU)))
 
 
+(defun read-remote ()
+"Replacement for (read) that operates remotely."
+  (if remote-chars-p
+      (prog2
+	(reload-remote-chars)
+	(substring remote-chars 0 (position #\  remote-chars))
+	(setq remote-chars ""))
+      (read)))
+
 (defun peek-char-remote () 
+"Replacement for peek-char, meant to operate on a buffer, received
+from a remote call."
   (if remote-chars-p 
       (progn
 	(reload-remote-chars)
 	(char remote-chars 0))
       (peek-char)))
+
 (defun read-char-remote () 
   (if remote-chars-p 
       (progn
@@ -56,6 +68,7 @@
       (read-char)))
 
 (defun reload-remote-chars ()
+"We're out of characters, go get some more."
   (if (= 0 (length remote-chars))
       (loop :for tmp = (setq remote-chars 
 			     (socket-cmd "localhost" "/?cmdget=top" 1337))
@@ -73,6 +86,7 @@
 	  ;; WORD is accumulating letters in a word, and SENT accumulates 
 	  ;; words in a sentence.  Both have to be reversed to make sense.
 	THRU (SETQ SENT (SETQ WORD (SETQ PUNCT (SETQ POSS NIL))))
+	     (show-response)
 	     (PRINT 'READY1)
 	     (TERPRI)
 	CHAR (COND ((EQUAL (PEEK-CHAR-REMOTE) #\~)
@@ -109,7 +123,8 @@
 		  (MEMQ CHAR CONSO))
 	      (SETQ WORD (CONS CHAR WORD)))
 	     (GO CHAR)
-	DO   (PRINT 'READY2)
+	DO   (show-response)
+	     (PRINT 'READY2)
 	     (TERPRI)
 	     (MAPC #'(LAMBDA (X) (PRINT2 X)) (REVERSE SENT))
 	     (PRINT2 '\ ) ;; was princ

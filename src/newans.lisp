@@ -27,7 +27,7 @@
 TEST-LOOP
 	     (AND ANS-AFTERFORMULATION-PAUSE  (ERT ANSWER HAS BEEN DETERMINED))
 	     (EVLIS (ACTION? (CAR ANSLIST)))			       ;THE ACTION INCLUDES BOTH THE THINGS TO BE DONE
-	     (PRINC '\.)					       ;AND THE INSTRUCTIONS FOR PRINTING A RESPONSE.
+	     (PRINT3 '\.)					       ;AND THE INSTRUCTIONS FOR PRINTING A RESPONSE.
 	     (TERPRI)
 (AND ANS-TEST? (GO TEST-LOOP))
 	     (DOBACKREF (CAR ANSLIST))				       ;DOBACKREF STORES AWAY DISCOURSE INFORMATION
@@ -191,16 +191,25 @@ TEST-LOOP
 	     (TERPRI)
 	     (SAY DO YOU MEAN\:)
 	     (SETQ XX 0.)
-	     (MAPC #'(LAMBDA (POSS) (PRINT3 (SETQ XX (+ 1 XX)))
-				   (MAPC 'PRINT2 (CADR POSS)))	       ;THE PARAPHRASE
-		   POSSIBILITIES)
+	     (loop for p on POSSIBILITIES 
+		do (progn
+		     (PRINT3 (format nil "(~D)" (SETQ XX (+ 1 XX))))
+		     (mapc 'print2 (cadr (car p)))
+		     (unless (= 1 (length p)) 
+		       (print3 " or "))))
+
+;	     (MAPC #'(LAMBDA (POSS) (PRINT3 (SETQ XX (+ 1 XX)))
+;				   (MAPC 'PRINT2 (CADR POSS)))	       ;THE PARAPHRASE
+;		   POSSIBILITIES)
 	     (PRINT3 '?)
+	     (show-response)
 	     (TERPRI)
-	READ (SETQ XX (READ))
+	READ (SETQ XX (read-remote))
 	     (COND ((OR (NOT (NUMBERP XX))
 			(> XX (LENGTH POSSIBILITIES)))
 		    (TERPRI)
-		    (SAY PLEASE TYPE ONE OF THE NUMBERS)
+		    (SAY PLEASE TYPE ONE OF THE NUMBERS.)
+		    (show-response)
 		    (TERPRI)
 		    (GO READ)))
 	     (SETQ POSSIBILITIES (SHRDLU-NTH XX POSSIBILITIES))
@@ -1415,14 +1424,14 @@ TEST-LOOP
 				      #'SASS)))
 		   (RETURN T))
 	       (SAY \(BY)
-	       (PRINC (COND ((EQ X 'IT) '\"IT\")
+	       (PRINT3 (COND ((EQ X 'IT) '\"IT\")
 		       ((MEMQ 'THEY (FROM SENT NIL))
 		       '\"THEY\")
 		       ('\"THEM\")))
 	       (SAY \, I ASSUME YOU)
-	       (PRINC 'MEAN)
+	       (PRINT3 'MEAN)
 	       (MAPC #'PRINT2 (PARAP XX))
-	       (RETURN (PRINC '\.\) ))))
+	       (RETURN (PRINT3 '\.\) ))))
 
 
 

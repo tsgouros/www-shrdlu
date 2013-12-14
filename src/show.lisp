@@ -252,8 +252,8 @@
 	      '(:B1 :B2 :B3 :B4 :B5 :B6 :B7 :B10 :BOX))
 	     (TERPRI)
 	     (SAY THE HAND IS GRASPING)
-	     (PRINC '\ )
-	     (PRINC (COND ((SETQ OBJ
+	     (PRINT3 '\ )
+	     (PRINT3 (COND ((SETQ OBJ
 				 (THVAL '(THGOAL (\#GRASPING (THNV X)))
 					'((X THUNBOUND))))
 			   (CADAR OBJ))
