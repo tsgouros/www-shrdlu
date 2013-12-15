@@ -535,6 +535,8 @@ spaces and attempts to fix punctuation and quotation mark spacing.
 Tries to capitalize 'I', too."
   (let ((out '())
 	(quotedp nil)
+	(new-sentence t)
+	(final-punct  '(#\. #\? #\!))
 	(maxindex (- (length s) 1)))
     (loop
        for c from 0 to maxindex
@@ -548,7 +550,7 @@ Tries to capitalize 'I', too."
 	      ;; eliminate double spaces and spaces before final punctuation.
 	      ((char= current-char #\ )
 	       (if (and (not (char= previous-char #\ ))
-			(not (member next-char '(#\. #\? #\!)))
+			(not (member next-char final-punct))
 			(not (and quotedp
 				  (char= previous-char #\")))
 			(not (and quotedp
@@ -560,18 +562,62 @@ Tries to capitalize 'I', too."
 			(or (char= next-char #\ )
 			    (char= next-char #\')))
 		   (setq out (cons #\I out))
-		   (setq out (cons current-char out))))
+		   (setq out (cons current-char out)))
+	       (setq new-sentence nil))
 	      (t
-	       (setq out (cons current-char out))))))
+	       (setq out (cons  (if new-sentence 
+				    (progn 
+				      (setq new-sentence nil)
+				      (char-upcase current-char)) 
+				    current-char) out))))
+	    (if (member current-char final-punct)
+		(setq new-sentence t))))
     (coerce (reverse out) 'string)))
+
+(defun serialize (s)
+  (let ((out '()))
+    (loop 
+       for c across s
+       do (cond
+	    ((char= c #\ )
+	     (setq out (cons #\+ out)))
+	    ((char= c #\?)
+	     (setq out (append '(#\f #\3 #\%) out)))
+	    ((char= c #\&)
+	     (setq out (append '(#\6 #\2 #\%) out)))
+	    ((char= c #\')
+	     (setq out (append '(#\7 #\2 #\%) out)))
+	    ((char= c #\")
+	     (setq out (append '(#\2 #\2 #\%) out)))
+	    ((char= c #\=)
+	     (setq out (append '(#\d #\3 #\%) out)))
+	    ((char= c #\+)
+	     (setq out (append '(#\b #\2 #\%) out)))
+	    ((char= c #\%)
+	     (setq out (append '(#\5 #\2 #\%) out)))
+	    ((char= c #\()
+	     (setq out (append '(#\8 #\2 #\%) out)))
+	    ((char= c #\))
+	     (setq out (append '(#\9 #\2 #\%) out)))
+	    (t
+	     (setq out (cons c out)))))
+    (coerce (reverse out) 'string)))
+
        
 (defun show-response () 
-  (if remote-chars-p
-      (progn
-	(princ (fix-sentence-spacing response-buffer)))
-      (progn
-	(terpri)
-	(princ (fix-sentence-spacing response-buffer))))
+  (let ((resp (fix-sentence-spacing response-buffer)))
+    (if remote-chars-p
+	(progn
+	  (socket-cmd "localhost" 
+		      (format nil "/?res=~A" 
+			      (serialize resp))
+		      1337)
+	  (terpri)
+	  (princ "sending...")
+	  (princ (serialize resp)))
+	(progn
+	  (terpri)
+	  (princ resp))))
   (setq response-buffer ""))
 
 (DEFUN PRINT2 (X) 

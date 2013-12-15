@@ -827,16 +827,44 @@ function render() {
 
 	second = testSecond;
 
-	var pop_url = "http://localhost:1337?actget=top";
+	var cmdUrl = "http://localhost:1337?actget=top";
 
 	xmlHttp = new XMLHttpRequest();
-	xmlHttp.onreadystatechange = ProcessRequest;
-	xmlHttp.open( "GET", pop_url, true );
+	xmlHttp.onreadystatechange = processRequest;
+	xmlHttp.open( "GET", cmdUrl, true );
 	xmlHttp.send( null );
+
+	var resUrl = "http://localhost:1337?resget=top";
+
+	var xmlResHttp = new XMLHttpRequest();
+	xmlResHttp.onreadystatechange = processResponse;
+	xmlResHttp.open( "GET", resUrl, true );
+	xmlResHttp.send( null );
+
 
     }
 
-    function ProcessRequest()
+    function processResponse()
+    {
+	if ( xmlResHttp.readyState == 4 && xmlResHttp.status == 200 )
+	{
+	    msg = xmlResHttp.responseText;
+
+	    if ( msg.match(/-empty-/g) ) return;
+
+	    console.log(msg);
+
+	    var tdiv = document.getElementById("infoScroll");
+	    tdiv.innerHTML = tdiv.innerHTML + '<p class="shrdlu-response">' + msg + "</p>";
+
+	    $("#infoScroll").html(tdiv.innerHTML);
+
+	    $('.ui-dialog').stop().animate({
+		scrollTop: $("#infoBox")[0].scrollHeight}, 800);
+        }
+    }
+
+    function processRequest()
     {
 	if ( xmlHttp.readyState == 4 && xmlHttp.status == 200 )
 	{

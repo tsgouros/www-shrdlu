@@ -45,7 +45,7 @@
   (if remote-chars-p
       (prog2
 	(reload-remote-chars)
-	(substring remote-chars 0 (position #\  remote-chars))
+	(subseq remote-chars 0 (position #\  remote-chars))
 	(setq remote-chars ""))
       (read)))
 
@@ -73,12 +73,17 @@ from a remote call."
       (loop :for tmp = (setq remote-chars 
 			     (socket-cmd "localhost" "/?cmdget=top" 1337))
 	 :while (equal tmp "-empty-") 
-	 :do (sleep 0.2))))
+	 :do (progn 
+	       (setq remote-chars "")
+	       (sleep 0.2))))
+	(princ "receiving...")
+	(princ remote-chars))
 
 (defvar remote-chars "" 
   "buffer to hold characters received from the remote source")
 (defvar remote-chars-p nil
-  "whether we're getting our characters remotely or not.  Set to t to use web interface.")
+  "whether we're getting our characters remotely or not.  Set to t to
+  use web interface.")
 
 (DEFUN ETAOIN NIL 
        (PROG (WORD NEWWORD CHAR ALTN ALREADY-BLGING-NEWWRD WRD LAST
@@ -308,10 +313,13 @@ from a remote call."
 	     (TERPRI)
 	     (SAY *SORRY I DON\'T KNOW THE WORD \")
 	     (PRINT3 WRD)
-	     (PRINT3 '\ \"\.)
+	     (PRINT3 '\"\.)
 	     (TERPRI)
-	     (SAY PLEASE CONTINUE THE SENTENCE AND TYPE <Enter>\.)
-	NOGO (OR (CHAR= (READ-CHAR-REMOTE) (CODE-CHAR 10.)) (GO NOGO))
+	     (say please continue the sentence\:)
+	     (apply-say (reverse (cons "..." sent)))
+	     (setq remote-chars "")
+;	     (SAY PLEASE TYPE <Enter> AND CONTINUE THE SENTENCE.)
+;	NOGO (OR (CHAR= (READ-CHAR-REMOTE) (CODE-CHAR 10.)) (GO NOGO))))
 	     (SETQ PUNCT NIL WORD NIL)
 	     (GO DO)
         OUT  (print (format nil "~A:~A" SENT WORD)))) 
