@@ -193,4 +193,4 @@
 (SETQ THGENS 0)
 
 
-(DEFUN THPRINTC (X) (TERPRI) (PRINC X) (PRINC '\ ))
+; removed thprintc - also defined in plnr.lisp -ts.

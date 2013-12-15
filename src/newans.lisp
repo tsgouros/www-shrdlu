@@ -642,7 +642,8 @@ TEST-LOOP
 
 ;;;############################################################
 
-(DEFUN ATOMIFY (X) (COND ((ATOM X) X) ((CDR X) X) ((CAR X))))
+; also in smutil.lisp -ts.
+;(DEFUN ATOMIFY (X) (COND ((ATOM X) X) ((CDR X) X) ((CAR X))))
 
 
 

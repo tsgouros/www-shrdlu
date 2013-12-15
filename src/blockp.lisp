@@ -796,12 +796,13 @@
 
 (THADD 'TC-PHYSOB NIL)
 
-(DEFUN SHRDLU-UNION (A B) (PROG NIL
-		    UP	 (COND ((NULL A) (RETURN B))
-			       ((MEMQ (CAR A) B))
-			       ((SETQ B (CONS (CAR A) B))))
-			 (SETQ A (CDR A))
-			 (GO UP)))
+; also defined in syscom.lisp -ts.
+;(DEFUN SHRDLU-UNION (A B) (PROG NIL
+;		    UP	 (COND ((NULL A) (RETURN B))
+;			       ((MEMQ (CAR A) B))
+;			       ((SETQ B (CONS (CAR A) B))))
+;			 (SETQ A (CDR A))
+;			 (GO UP)))
 
 '(COMMANDS ARE\:
 		 \#CLEARTOP

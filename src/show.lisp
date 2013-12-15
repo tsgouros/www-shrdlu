@@ -1038,7 +1038,4 @@
 	 (WRITE-LINE LINE))
        '*)
 
-(DEFUN LIS2FY (X) 
-       (COND ((ATOM X) (LIST (LIST X)))
-	     ((ATOM (CAR X)) (LIST X))
-	     (X)))
+; removed lis2fy, also in syscom.lisp -ts.
