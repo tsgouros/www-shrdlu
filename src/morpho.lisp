@@ -40,51 +40,6 @@
 ;	 (go THRU)))
 
 
-(defun read-remote ()
-"Replacement for (read) that operates remotely."
-  (if remote-chars-p
-      (prog2
-	(reload-remote-chars)
-	(subseq remote-chars 0 (position #\  remote-chars))
-	(setq remote-chars ""))
-      (read)))
-
-(defun peek-char-remote () 
-"Replacement for peek-char, meant to operate on a buffer, received
-from a remote call."
-  (if remote-chars-p 
-      (progn
-	(reload-remote-chars)
-	(char remote-chars 0))
-      (peek-char)))
-
-(defun read-char-remote () 
-  (if remote-chars-p 
-      (progn
-	(reload-remote-chars)
-	(let ((outchar (char remote-chars 0)))
-	  (setq remote-chars (subseq remote-chars 1))
-	  outchar))
-      (read-char)))
-
-(defun reload-remote-chars ()
-"We're out of characters, go get some more."
-  (if (= 0 (length remote-chars))
-      (loop :for tmp = (setq remote-chars 
-			     (socket-cmd "localhost" "/?cmdget=top" 1337))
-	 :while (equal tmp "-empty-") 
-	 :do (progn 
-	       (setq remote-chars "")
-	       (sleep 0.2))))
-	(princ "receiving...")
-	(princ remote-chars))
-
-(defvar remote-chars "" 
-  "buffer to hold characters received from the remote source")
-(defvar remote-chars-p nil
-  "whether we're getting our characters remotely or not.  Set to t to
-  use web interface.")
-
 (DEFUN ETAOIN NIL 
        (PROG (WORD NEWWORD CHAR ALTN ALREADY-BLGING-NEWWRD WRD LAST
 	      NEXT Y WORD1 X RD POSS) 
@@ -315,9 +270,11 @@ from a remote call."
 	     (PRINT3 WRD)
 	     (PRINT3 '\"\.)
 	     (TERPRI)
+	     ;; replaced to make more sense with modern keyboards 
+	     ;; and remote usage.  -ts.
 	     (say please continue the sentence\:)
-	     (apply-say (reverse (cons "..." sent)))
-	     (setq remote-chars "")
+	     (apply-say (reverse (cons " ..." sent)))
+	     (purge-remote-chars) 
 ;	     (SAY PLEASE TYPE <Enter> AND CONTINUE THE SENTENCE.)
 ;	NOGO (OR (CHAR= (READ-CHAR-REMOTE) (CODE-CHAR 10.)) (GO NOGO))))
 	     (SETQ PUNCT NIL WORD NIL)

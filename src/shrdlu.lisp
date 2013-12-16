@@ -1,6 +1,7 @@
+#!/opt/local/bin/clisp
 ;
 ; This file loads in all the needed files for SHRDLU.
-; 
+;
 (defpackage shrdlu
   (:use :common-lisp))
 (in-package :shrdlu)
@@ -30,10 +31,12 @@
 (load "mover")
 
 ; Set either (DEBUGMODE) or (USERMODE) here.
-;(USERMODE)
-(DEBUGMODE)
+(USERMODE)
+;(DEBUGMODE)
 
-(setq remote-chars-p nil)
+(setq remote-chars-p t)
+(setq remote-host "localhost")
+(setq remote-port 1337)
 
 ; Start the program
 (INITIALSTUFF 'UMR-1.0 NIL)
