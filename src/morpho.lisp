@@ -274,7 +274,7 @@
 	     ;; and remote usage.  -ts.
 	     (say please continue the sentence\:)
 	     (apply-say (reverse (cons " ..." sent)))
-	     (purge-remote-chars) 
+	     (purge-cmd-buffer) 
 ;	     (SAY PLEASE TYPE <Enter> AND CONTINUE THE SENTENCE.)
 ;	NOGO (OR (CHAR= (READ-CHAR-REMOTE) (CODE-CHAR 10.)) (GO NOGO))))
 	     (SETQ PUNCT NIL WORD NIL)

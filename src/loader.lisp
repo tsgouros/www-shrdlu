@@ -33,7 +33,7 @@
 ;(USERMODE)
 (DEBUGMODE)
 
-(setq remote-chars-p nil)
+(setq remote-cmds-p nil)
 
 ; Start the program
 (INITIALSTUFF 'UMR-1.0 NIL)

@@ -34,7 +34,7 @@
 (USERMODE)
 ;(DEBUGMODE)
 
-(setq remote-chars-p t)
+(setq remote-cmds-p t)
 (setq remote-host "localhost")
 (setq remote-port 1337)
 

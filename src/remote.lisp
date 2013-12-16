@@ -23,11 +23,11 @@
 (defvar remote-port 1337 
   "The port on the remote host with which to communicate.")
 
-(defvar remote-chars "" 
+(defvar cmd-buffer "" 
   "buffer to hold characters received from the remote source")
 
-(defvar remote-chars-p nil
-  "Whether the user dialod is being conducted remotely or not.  Set to
+(defvar remote-cmds-p nil
+  "Whether the user dialog is being conducted remotely or not.  Set to
   t to use web interface.")
 
 (defvar remote-actions-p t
@@ -62,46 +62,46 @@
 (defun read-remote ()
   "Replacement for (read) that operates remotely.  Used to receive user
   sentences."
-  (if remote-chars-p
+  (if remote-cmds-p
       (prog2
-	(reload-remote-chars)
-	(subseq remote-chars 0 (position #\  remote-chars))
-	(setq remote-chars ""))
+	(reload-cmd-buffer)
+	(subseq cmd-buffer 0 (position #\  cmd-buffer))
+	(setq cmd-buffer ""))
       (read)))
 
 (defun peek-char-remote () 
   "Replacement for peek-char, meant to operate on a buffer, received
   from a remote call.  Used to receive user sentences."
-  (if remote-chars-p 
+  (if remote-cmds-p 
       (progn
-	(reload-remote-chars)
-	(char remote-chars 0))
+	(reload-cmd-buffer)
+	(char cmd-buffer 0))
       (peek-char)))
 
 (defun read-char-remote () 
   "Replacement for read-char, meant to operate remotely if necessary.
   Used to receive user sentences."
-  (if remote-chars-p 
+  (if remote-cmds-p 
       (progn
-	(reload-remote-chars)
-	(let ((outchar (char remote-chars 0)))
-	  (setq remote-chars (subseq remote-chars 1))
+	(reload-cmd-buffer)
+	(let ((outchar (char cmd-buffer 0)))
+	  (setq cmd-buffer (subseq cmd-buffer 1))
 	  outchar))
       (read-char)))
 
-(defun purge-remote-chars () 
+(defun purge-cmd-buffer () 
   "Clear the command-receiving buffer."
-  (setq remote-chars ""))
+  (setq cmd-buffer ""))
 
-(defun reload-remote-chars ()
+(defun reload-cmd-buffer ()
   "We're out of characters in the command (user sentence) buffer.
   Query the queue server to get some more."
-  (if (= 0 (length remote-chars))
-      (loop :for tmp = (setq remote-chars 
+  (if (= 0 (length cmd-buffer))
+      (loop :for tmp = (setq cmd-buffer 
 			     (socket-cmd remote-host "/?cmdget=top" remote-port))
 	 :while (equal tmp "-empty-") 
 	 :do (progn 
-	       (setq remote-chars "")
+	       (setq cmd-buffer "")
 	       (sleep 0.2)))))
 
 
@@ -185,9 +185,9 @@
        
 (defun show-response () 
   "Show a response from SHRDLU, remotely if that is appropriate,
-  locally otherwise, according to the remote-chars-p flag."
+  locally otherwise, according to the remote-cmds-p flag."
   (let ((resp (fix-sentence-spacing response-buffer)))
-    (if remote-chars-p
+    (if remote-cmds-p
 	(progn
 	  (socket-cmd remote-host
 		      (format nil "/?res=~A" 
