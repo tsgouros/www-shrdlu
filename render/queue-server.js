@@ -95,14 +95,11 @@ http.createServer(function (request, response) {
 	// No query string.  Must just want a file.
 	var filename = path.join(process.cwd(), pathname);
 
-	console.log("requesting: " + filename);
-	console.log(shrdluProcess.connected);
-
+	// If we want the shrdlu icon, restart the shrdlu process
+	// because we're restarting the display window.
 	if (/icon-shrdlu.png/g.test(filename)) {
 
 	    shrdluProcess.kill();
-
-	    console.log("disconnect");
 
 	    shrdluProcess = spawn("/Users/tomfool/tech/13/brown/grounded-language/shrdlu/src/shrdlu.lisp", [], {detached: true, stdio: ['ignore']} );
 

@@ -196,6 +196,8 @@ function commands() {
 
 	console.log("grasp: " + this.objInHand.name);
 
+	this.objInHand.pickup();
+
 	return this.objInHand;
     }
 
@@ -687,8 +689,10 @@ function init() {
     objs.addSC('B10', "block", 0x0000ff,
       	       {x: 100, y:400, z:200}, {x:640, y:0, z:300});
 
+    // This has been enlarged 10 units on each side.  We cheat so that the
+    // 3js rendering will look better.
     objs.addSC('BOX', "box", 0xffffff,
-      	       {x: 376, y:100, z:376}, {x:599, y:0, z:599});
+      	       {x: 396, y:100, z:396}, {x:590, y:0, z:590});
 
 //     objs.add('cube1', "block", Math.random() * 0xffffff,
 //                  {x: 50, y:50, z:50}, {x:0, y:0, z:0});
@@ -852,7 +856,7 @@ function render() {
 
 	    if ( msg.match(/-empty-/g) ) return;
 
-	    console.log(msg);
+	    //console.log(msg);
 
 	    var tdiv = document.getElementById("infoScroll");
 	    tdiv.innerHTML = tdiv.innerHTML + '<p class="shrdlu-response">' + msg + "</p>";
