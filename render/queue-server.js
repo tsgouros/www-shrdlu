@@ -5,7 +5,19 @@ var path = require('path');
 var fs = require('fs');
 var spawn = require('child_process').spawn;
 
-var shrdluProcess = spawn("/Users/tomfool/tech/13/brown/grounded-language/shrdlu/src/shrdlu.lisp");
+if (process.argv.length < 5) {
+    console.log("usage: node queue-server.js host port shrdluScript");
+    return;
+}
+
+var host = process.argv[2];
+var port = process.argv[3];
+var shrdluScript = process.argv[4];
+
+// This will be restarted as soon as someone asks for the
+// icon-shrdlu.png button image, so it doesn't have to run detached
+// yet.  Need a command-line arg to turn it off or on.
+var shrdluProcess = spawn(shrdluScript);
 
 var moveQueue = Array();
 var cmdQueue = Array();
@@ -101,9 +113,11 @@ http.createServer(function (request, response) {
 
 	    shrdluProcess.kill();
 
-	    shrdluProcess = spawn("/Users/tomfool/tech/13/brown/grounded-language/shrdlu/src/shrdlu.lisp", [], {detached: true, stdio: ['ignore']} );
+	    shrdluProcess = spawn(shrdluScript, [], 
+				  {detached: true, stdio: ['ignore']} );
 
-	    shrdluProcess.on('error', function (err) { console.log(">>>" + err); } );
+	    shrdluProcess.on('error', function (err) { 
+		console.log(">>>" + err); } );
 
 	    shrdluProcess.unref();
 
@@ -159,6 +173,6 @@ http.createServer(function (request, response) {
 	response.end(out + '\n');
     }
 
-}).listen(1337, '127.0.0.1');
+}).listen(port, host);
 
-console.log('Server running at http://127.0.0.1:1337/');
+console.log('Server running at http://' + host + ":" + port);
