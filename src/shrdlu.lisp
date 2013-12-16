@@ -10,6 +10,10 @@
 ; No, it's not.  Not sure what it is....
 (DEFCONSTANT CHRCT 76)
 
+(setq custom:*load-paths* (cons "/Users/tomfool/tech/13/brown/grounded-language/shrdlu/src/" custom:*load-paths*))
+
+(princ custom:*load-paths*)
+
 (load "remote")
 (load "fixes")
 (load "progmr")

@@ -3,6 +3,9 @@ var http = require('http');
 var url = require('url');
 var path = require('path');
 var fs = require('fs');
+var spawn = require('child_process').spawn;
+
+var shrdluProcess = spawn("/Users/tomfool/tech/13/brown/grounded-language/shrdlu/src/shrdlu.lisp");
 
 var moveQueue = Array();
 var cmdQueue = Array();
@@ -21,13 +24,13 @@ http.createServer(function (request, response) {
 	pathname = "/index.html";
     }
 
-    console.log('processing request (' + counter.toString() + '): ' + pathname);
-    console.log('act-->' + queryData.act);
-    console.log('actget-->' + queryData.actget);
-    console.log('cmd-->' + queryData.cmd);
-    console.log('cmdget-->' + queryData.cmdget);
-    console.log('res-->' + queryData.res);
-    console.log('resget-->' + queryData.resget);
+    // console.log('processing request (' + counter.toString() + '): ' + pathname);
+    // console.log('act-->' + queryData.act);
+    // console.log('actget-->' + queryData.actget);
+    // console.log('cmd-->' + queryData.cmd);
+    // console.log('cmdget-->' + queryData.cmdget);
+    // console.log('res-->' + queryData.res);
+    // console.log('resget-->' + queryData.resget);
 
     var out;
 
@@ -91,6 +94,24 @@ http.createServer(function (request, response) {
 
 	// No query string.  Must just want a file.
 	var filename = path.join(process.cwd(), pathname);
+
+	console.log("requesting: " + filename);
+	console.log(shrdluProcess.connected);
+
+	if (/icon-shrdlu.png/g.test(filename)) {
+
+	    shrdluProcess.kill();
+
+	    console.log("disconnect");
+
+	    shrdluProcess = spawn("/Users/tomfool/tech/13/brown/grounded-language/shrdlu/src/shrdlu.lisp", [], {detached: true, stdio: ['ignore']} );
+
+	    shrdluProcess.on('error', function (err) { console.log(">>>" + err); } );
+
+	    shrdluProcess.unref();
+
+	}
+
 	fs.exists(filename, function(exists) {
     	    if (!exists) {
     		response.writeHead(404, {"Content-Type": "text/plain"});
@@ -129,12 +150,12 @@ http.createServer(function (request, response) {
 	out = '';
     }
 
-    console.log("moveQueue");
-    console.log(moveQueue);
-    console.log("cmdQueue");
-    console.log(cmdQueue)
-    console.log("resQueue");
-    console.log(resQueue)
+    // console.log("moveQueue");
+    // console.log(moveQueue);
+    // console.log("cmdQueue");
+    // console.log(cmdQueue)
+    // console.log("resQueue");
+    // console.log(resQueue)
 
     if (out) {
 	response.writeHead(200, {'Content-Type': 'text/plain'});
