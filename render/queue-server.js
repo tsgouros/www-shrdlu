@@ -6,7 +6,7 @@ var fs = require('fs');
 var spawn = require('child_process').spawn;
 
 if (process.argv.length < 5) {
-    console.log("usage: node queue-server.js host port shrdluScript");
+    console.log("usage: node queue-server.js host port shrdluScript [debug]");
     return;
 }
 
@@ -14,10 +14,31 @@ var host = process.argv[2];
 var port = process.argv[3];
 var shrdluScript = process.argv[4];
 
+var debug;
+if (process.argv.length > 5) {
+    debug = true;
+} else {
+    debug = false;
+}
+
 // This will be restarted as soon as someone asks for the
 // icon-shrdlu.png button image, so it doesn't have to run detached
 // yet.  Need a command-line arg to turn it off or on.
-var shrdluProcess = spawn(shrdluScript);
+var shrdluProcess = spawn(shrdluScript, [host, port]);
+
+if (debug) {
+    shrdluProcess.stdout.on('data', function (data) {
+	console.log('stdout: ' + data);
+    });
+
+    shrdluProcess.stderr.on('data', function (data) {
+	console.log('stderr: ' + data);
+    });
+
+    shrdluProcess.on('close', function (code) {
+	console.log('child process exited with code ' + code);
+    });
+}
 
 var moveQueue = Array();
 var cmdQueue = Array();
@@ -113,8 +134,23 @@ http.createServer(function (request, response) {
 
 	    shrdluProcess.kill();
 
-	    shrdluProcess = spawn(shrdluScript, [], 
+	    shrdluProcess = spawn(shrdluScript, [host, port], 
 				  {detached: true, stdio: ['ignore']} );
+
+	    if (debug) {
+		shrdluProcess.stdout.on('data', function (data) {
+		    console.log('stdout: ' + data);
+		});
+
+		shrdluProcess.stderr.on('data', function (data) {
+		    console.log('stderr: ' + data);
+		});
+
+		shrdluProcess.on('close', function (code) {
+		    console.log('child process exited with code ' + code);
+		});
+	    }
+
 
 	    shrdluProcess.on('error', function (err) { 
 		console.log(">>>" + err); } );
