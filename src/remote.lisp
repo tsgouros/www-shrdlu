@@ -30,6 +30,10 @@
   "Whether the user dialog is being conducted remotely or not.  Set to
   t to use web interface.")
 
+(defvar remote-cmd-buffer-polling-freq 5.2
+  "SHRDLU will poll the queue server for user-issued commands, at an
+  interval of this many seconds.")
+
 (defvar remote-actions-p t
   "Flag to indicate whether we're displaying the actions on the remote
   display.  Note that this is commonly done even when the commands and
@@ -56,7 +60,8 @@
 (defun remote-action (cmd)
   "Sends an action command.  This is a command that actually changes the
   display: move, grasp, release, etc."
-  (socket-cmd remote-host (format nil "/?act=~A" cmd) remote-port))
+  (if remote-actions-p
+      (socket-cmd remote-host (format nil "/?act=~A" cmd) remote-port)))
 
 
 (defun read-remote ()
@@ -102,7 +107,7 @@
 	 :while (equal tmp "-empty-") 
 	 :do (progn 
 	       (setq cmd-buffer "")
-	       (sleep 0.2)))))
+	       (sleep remote-cmd-buffer-polling-freq)))))
 
 
 ;; This is just to pretty up the output.
@@ -187,7 +192,7 @@
   "Show a response from SHRDLU, remotely if that is appropriate,
   locally otherwise, according to the remote-cmds-p flag."
   (let ((resp (fix-sentence-spacing response-buffer)))
-    (if remote-cmds-p
+    (if (and remote-cmds-p (< 0 (length resp)))
 	(progn
 	  (socket-cmd remote-host
 		      (format nil "/?res=~A" 
