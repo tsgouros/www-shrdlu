@@ -1,4 +1,4 @@
-#!/opt/local/bin/clisp
+#!/usr/bin/clisp
 ;
 ; This file loads in all the needed files for SHRDLU.
 ;
@@ -10,7 +10,7 @@
 ; No, it's not.  Not sure what it is....
 (DEFCONSTANT CHRCT 76)
 
-(setq custom:*load-paths* (cons "/Users/tomfool/tech/14/shrdlu/src/" custom:*load-paths*))
+(setq custom:*load-paths* (cons "/home/tsgouros/shrdlu/src/" custom:*load-paths*))
 
 (princ custom:*load-paths*)
 
