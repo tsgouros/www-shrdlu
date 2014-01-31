@@ -30,7 +30,7 @@
   "Whether the user dialog is being conducted remotely or not.  Set to
   t to use web interface.")
 
-(defvar remote-cmd-buffer-polling-freq 5.2
+(defvar remote-cmd-buffer-polling-freq 0.2
   "SHRDLU will poll the queue server for user-issued commands, at an
   interval of this many seconds.")
 
