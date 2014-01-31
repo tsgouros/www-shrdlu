@@ -9,7 +9,7 @@
    Additional API modiftications
      Marak Squires - MIT License
 
-
+  See http://blog.nodejitsu.com/sessions-and-cookies-in-node/
 
     ## Options ##
 

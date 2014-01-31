@@ -69,6 +69,20 @@ var resQueue = Array();
 var counter = 0;
 var outstring = '-empty-';
 
+var prevConsoleString = "";
+var prevConsoleCount = 0;
+function printConsole(str) {
+    if (str.localeCompare(prevConsoleString) == 0) {
+	prevConsoleCount++;
+	process.stdout.write(str + " (" + prevConsoleCount.toString() + ")\r");
+    } else {
+	prevConsoleCount = 0;
+	process.stdout.write("\n" + str + "\r");
+    }
+
+    prevConsoleString = str;
+}
+
 http.createServer(function (request, response) {
     var pathname = url.parse(request.url).pathname;
     var queryData  = url.parse(request.url, true).query;
@@ -98,13 +112,26 @@ http.createServer(function (request, response) {
     }
 
     if (debug) {
-	console.log('processing request (' + counter.toString() + '): ' + pathname);
-	console.log('act-->' + queryData.act);
-	console.log('actget-->' + queryData.actget);
-	console.log('cmd-->' + queryData.cmd);
-	console.log('cmdget-->' + queryData.cmdget);
-	console.log('res-->' + queryData.res);
-	console.log('resget-->' + queryData.resget);
+
+	if (moveQueue.length > 0) 
+	    printConsole("moveQueue:[" + moveQueue.toString() + "]");
+	if (cmdQueue.length > 0)
+	    printConsole("cmdQueue:[" + cmdQueue.toString() + "]");
+	if (resQueue.length > 0)
+	    printConsole("resQueue:[" + resQueue.toString() + "]");
+
+	if ( !(queryData.act === undefined))
+	    printConsole('act-->' + queryData.act);
+	if ( !(queryData.actget === undefined))
+	    printConsole('actget-->' + queryData.actget);
+	if ( !(queryData.cmd === undefined))
+	    printConsole('cmd-->' + queryData.cmd);
+	if ( !(queryData.cmdget === undefined))
+	    printConsole('cmdget-->' + queryData.cmdget);
+	if ( !(queryData.res === undefined))
+	    printConsole('res-->' + queryData.res);
+	if ( !(queryData.resget === undefined))
+	    printConsole('resget-->' + queryData.resget);
     }
 
     var out;
@@ -181,20 +208,20 @@ http.createServer(function (request, response) {
 
 	    if (debug) {
 		shrdluProcess.stdout.on('data', function (data) {
-		    console.log('stdout: ' + data);
+		    printConsole('stdout: ' + data);
 		});
 
 		shrdluProcess.stderr.on('data', function (data) {
-		    console.log('stderr: ' + data);
+		    printConsole('stderr: ' + data);
 		});
 
 		shrdluProcess.on('close', function (code) {
-		    console.log('child process exited with code ' + code);
+		    printConsole('child process exited with code ' + code);
 		});
 	    }
 
 	    shrdluProcess.on('error', function (err) { 
-		console.log(">>>" + err); } );
+		printConsole(">>>" + err); } );
 
 	    shrdluProcess.unref();
 
@@ -206,8 +233,8 @@ http.createServer(function (request, response) {
 	    });
 
 	    if (debug) {
-		console.log("cookie: " + session.getSetCookieSessionValue());
-		console.log("cookie: " + session.getSetCookiePortValue());
+		printConsole("cookie: " + session.getSetCookieSessionValue());
+		printConsole("cookie: " + session.getSetCookiePortValue());
 	    }
 
 	}
@@ -243,9 +270,9 @@ http.createServer(function (request, response) {
 			}
 
 			if (debug) {
-			    console.log("sending: " + filename + " (" + fileType + ", " + contentType + ")");
-			    console.log("cookie:" + session.getSetCookieSessionValue());
-			    console.log("cookie:" + session.getSetCookiePortValue());
+			    printConsole("sending: " + filename + " (" + fileType + ", " + contentType + ")");
+			    printConsole("cookie:" + session.getSetCookieSessionValue());
+			    printConsole("cookie:" + session.getSetCookiePortValue());
 			}
 
 			response.writeHead(200, [
