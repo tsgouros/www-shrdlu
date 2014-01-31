@@ -4,6 +4,8 @@ var url = require('url');
 var path = require('path');
 var fs = require('fs');
 var spawn = require('child_process').spawn;
+var sessions = require('./session.js');
+
 
 if (process.argv.length < 5) {
     console.log("usage: node queue-server.js host port shrdluScript [debug]");
@@ -14,6 +16,8 @@ var host = process.argv[2];
 var port = process.argv[3];
 var shrdluScript = process.argv[4];
 
+var session = sessions.create({ "domain": host, "port": port });
+
 var debug;
 if (process.argv.length > 5) {
     debug = true;
@@ -21,24 +25,42 @@ if (process.argv.length > 5) {
     debug = false;
 }
 
-// This will be restarted as soon as someone asks for the
-// icon-shrdlu.png button image, so it doesn't have to run detached
-// yet.  Need a command-line arg to turn it off or on.
+
+    // check out shrdluScript
+fs.stat(shrdluScript, function (err, stats) { 
+    try {
+	if (!(stats.isFile() && 
+	      (1 & parseInt((stats.mode & parseInt("777", 8))
+			    .toString(8)[0])))) {
+	    console.log(shrdluScript + " not executable.");
+	    process.exit(1);
+	}
+    } catch(err) {
+	console.log("problem with file " + shrdluScript + ".  Probably not found ");
+	process.exit(1);
+    }
+});
+// This will be restarted as soon as someone asks for the index.html
+// file, so it doesn't have to run detached yet.  This process will
+// never be used, but it's less trouble to start it here and kill it
+// later.
 var shrdluProcess = spawn(shrdluScript, [host, port]);
+// tbd: Need a command-line arg to turn it off or on.
 
-if (debug) {
-    shrdluProcess.stdout.on('data', function (data) {
-	console.log('stdout: ' + data);
-    });
+// if (debug) {
+//     shrdluProcess.stdout.on('data', function (data) {
+// 	console.log('stdout1: ' + data);
+//     });
 
-    shrdluProcess.stderr.on('data', function (data) {
-	console.log('stderr: ' + data);
-    });
+//     shrdluProcess.stderr.on('data', function (data) {
+// 	console.log('stderr1: ' + data);
+//     });
 
-    shrdluProcess.on('close', function (code) {
-	console.log('child process exited with code ' + code);
-    });
-}
+//     shrdluProcess.on('close', function (code) {
+// 	console.log('child process exited with code ' + code);
+//     });
+// }
+
 
 var moveQueue = Array();
 var cmdQueue = Array();
@@ -51,19 +73,39 @@ http.createServer(function (request, response) {
     var pathname = url.parse(request.url).pathname;
     var queryData  = url.parse(request.url, true).query;
 
+    // console.log(request.headers);
+    // console.log("****" + url.parse(request.url).pathname);
+    // console.log("^^^^" + request.url + "<<<");
+
+    // for (var entry in queryData) {
+    // 	console.log("+++" + entry + "->(" + queryData[entry] + ")"); }
+
+    // console.log(Object.keys(queryData).length);
+
+    var cookies = {};
+    request.headers.cookie && request.headers.cookie.split(';').forEach(function(cookie) {
+	var parts = cookie.split('=');
+	cookies[ parts[0].trim() ] = ( parts[1] || '').trim();
+
+	if (debug) 
+	    console.log("cookie found: " + parts[0].trim() + " = " + (parts[1] || '').trim());
+    });
+
     counter++;
 
-    if (pathname == "/") {
+    if ((pathname == "/") && (Object.keys(queryData).length == 0)) {
 	pathname = "/index.html";
     }
 
-    // console.log('processing request (' + counter.toString() + '): ' + pathname);
-    // console.log('act-->' + queryData.act);
-    // console.log('actget-->' + queryData.actget);
-    // console.log('cmd-->' + queryData.cmd);
-    // console.log('cmdget-->' + queryData.cmdget);
-    // console.log('res-->' + queryData.res);
-    // console.log('resget-->' + queryData.resget);
+    if (debug) {
+	console.log('processing request (' + counter.toString() + '): ' + pathname);
+	console.log('act-->' + queryData.act);
+	console.log('actget-->' + queryData.actget);
+	console.log('cmd-->' + queryData.cmd);
+	console.log('cmdget-->' + queryData.cmdget);
+	console.log('res-->' + queryData.res);
+	console.log('resget-->' + queryData.resget);
+    }
 
     var out;
 
@@ -128,9 +170,9 @@ http.createServer(function (request, response) {
 	// No query string.  Must just want a file.
 	var filename = path.join(process.cwd(), pathname);
 
-	// If we want the shrdlu icon, restart the shrdlu process
+	// If we want the index.html, restart the shrdlu process
 	// because we're restarting the display window.
-	if (/icon-shrdlu.png/g.test(filename)) {
+	if (/index.html/g.test(filename)) {
 
 	    shrdluProcess.kill();
 
@@ -151,11 +193,22 @@ http.createServer(function (request, response) {
 		});
 	    }
 
-
 	    shrdluProcess.on('error', function (err) { 
 		console.log(">>>" + err); } );
 
 	    shrdluProcess.unref();
+
+	    // Renew the cookies
+	    session = sessions.lookupOrCreate(request, {
+		lifetime: 86400,
+		domain: host,
+		port: port
+	    });
+
+	    if (debug) {
+		console.log("cookie: " + session.getSetCookieSessionValue());
+		console.log("cookie: " + session.getSetCookiePortValue());
+	    }
 
 	}
 
@@ -170,24 +223,38 @@ http.createServer(function (request, response) {
     			response.end(err + "\n");
     		    } else {
 
+			var fileType, contentType;
+
 			if (filename.match(/\.js/g)) {
-			    response.writeHead(200, {"Content-Type": "application/javascript"});
-			    response.write(file, "utf8");
+			    contentType = "application/javascript";
+			    fileType = "utf8";
 
 			} else if (filename.match(/\.css/g)) {
-			
-			    response.writeHead(200, {"Content-Type": "text/css"});
-			    response.write(file, "utf8");
+			    contentType = "text/css";
+			    fileType = "utf8";
 
 			} else if (filename.match(/\.png/g)) {
-			
-			    response.writeHead(200, {"Content-Type": "image/png"});
-			    response.write(file, "binary");
+			    contentType = "image/png";
+			    fileType = "binary";
 
 			} else {
-
-			    response.write(file, "utf8");
+			    contentType = "text/html";
+			    fileType = "utf8";
 			}
+
+			if (debug) {
+			    console.log("sending: " + filename + " (" + fileType + ", " + contentType + ")");
+			    console.log("cookie:" + session.getSetCookieSessionValue());
+			    console.log("cookie:" + session.getSetCookiePortValue());
+			}
+
+			response.writeHead(200, [
+			    ["Content-Type", contentType ],
+			    ["Set-Cookie", session.getSetCookieSessionValue()],
+			    ["Set-Cookie", session.getSetCookiePortValue() ]
+			]);
+
+			response.write(file, fileType);
     			response.end();
 		    }
 		});
@@ -197,15 +264,13 @@ http.createServer(function (request, response) {
 	out = '';
     }
 
-    // console.log("moveQueue");
-    // console.log(moveQueue);
-    // console.log("cmdQueue");
-    // console.log(cmdQueue)
-    // console.log("resQueue");
-    // console.log(resQueue)
-
     if (out) {
-	response.writeHead(200, {'Content-Type': 'text/plain'});
+	response.writeHead(200, [
+	    ["Content-Type", "text/plain" ],
+	    ["Set-Cookie", session.getSetCookieSessionValue()],
+	    ["Set-Cookie", session.getSetCookiePortValue() ]
+	]);
+
 	response.end(out + '\n');
     }
 
