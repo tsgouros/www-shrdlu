@@ -831,14 +831,14 @@ function render() {
 
 	second = testSecond;
 
-	var cmdUrl = "http://localhost:1337?actget=top";
+	var cmdUrl = "http://block.cs.brown.edu:1229?actget=top";
 
 	xmlHttp = new XMLHttpRequest();
 	xmlHttp.onreadystatechange = processRequest;
 	xmlHttp.open( "GET", cmdUrl, true );
 	xmlHttp.send( null );
 
-	var resUrl = "http://localhost:1337?resget=top";
+	var resUrl = "http://block.cs.brown.edu:1229?resget=top";
 
 	var xmlResHttp = new XMLHttpRequest();
 	xmlResHttp.onreadystatechange = processResponse;

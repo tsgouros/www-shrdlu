@@ -37,7 +37,7 @@ $(function()
 
 //	    var ralph = "hello"; //this.serialize();
 
-	    var pushURL = "http://localhost:1337?cmd=" + 
+	    var pushURL = "http://block.cs.brown.edu:1229?cmd=" + 
 		encodeURIComponent(tmp);
 
 	    var xmlHttp = new XMLHttpRequest();
