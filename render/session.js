@@ -213,20 +213,7 @@ function randomString(bits) {
 Session.prototype.getSetCookieSessionValue = 
     function() {
 	var parts;
-	parts = ['SID=' + this.id];
-	if (this.path) parts.push('path=' + this.path);
-	if (this.domain) parts.push('domain=' + this.domain);
-	if (this.persistent) {
-	    parts.push('expires=' + dateCookieString(this.expiration));
-	}
-
-	return parts.join('; ');
-    }
-
-Session.prototype.getSetCookiePortValue = 
-    function() {
-	var parts;
-	parts = ['port=' + this.port];
+	parts = ['SID=' + this.id + "." + this.port];
 	if (this.path) parts.push('path=' + this.path);
 	if (this.domain) parts.push('domain=' + this.domain);
 	if (this.persistent) {

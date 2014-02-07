@@ -16,7 +16,10 @@ var host = process.argv[2];
 var port = process.argv[3];
 var shrdluScript = process.argv[4];
 
-var session = sessions.create({ "domain": ".cs.brown.edu", "port": port });
+var session = sessions.create({ "domain": ".cs.brown.edu", 
+				"port": port,
+				"lifetime": 4000
+			      });
 
 var debug;
 if (process.argv.length > 5) {
@@ -234,7 +237,6 @@ http.createServer(function (request, response) {
 
 	    if (debug) {
 		printConsole("cookie: " + session.getSetCookieSessionValue());
-		printConsole("cookie: " + session.getSetCookiePortValue());
 	    }
 
 	}
@@ -272,13 +274,11 @@ http.createServer(function (request, response) {
 			if (debug) {
 			    printConsole("sending: " + filename + " (" + fileType + ", " + contentType + ")");
 			    printConsole("cookie:" + session.getSetCookieSessionValue());
-			    printConsole("cookie:" + session.getSetCookiePortValue());
 			}
 
 			response.writeHead(200, [
 			    ["Content-Type", contentType ],
-			    ["Set-Cookie", session.getSetCookieSessionValue()],
-			    ["Set-Cookie", session.getSetCookiePortValue() ]
+			    ["Set-Cookie", session.getSetCookieSessionValue()]
 			]);
 
 			response.write(file, fileType);
@@ -294,8 +294,7 @@ http.createServer(function (request, response) {
     if (out) {
 	response.writeHead(200, [
 	    ["Content-Type", "text/plain" ],
-	    ["Set-Cookie", session.getSetCookieSessionValue()],
-	    ["Set-Cookie", session.getSetCookiePortValue() ]
+	    ["Set-Cookie", session.getSetCookieSessionValue()]
 	]);
 
 	response.end(out + '\n');
