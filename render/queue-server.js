@@ -16,7 +16,7 @@ var host = process.argv[2];
 var port = process.argv[3];
 var shrdluScript = process.argv[4];
 
-var session = sessions.create({ "domain": host, "port": port });
+var session = sessions.create({ "domain": ".cs.brown.edu", "port": port });
 
 var debug;
 if (process.argv.length > 5) {
@@ -102,7 +102,7 @@ http.createServer(function (request, response) {
 	cookies[ parts[0].trim() ] = ( parts[1] || '').trim();
 
 	if (debug) 
-	    console.log("cookie found: " + parts[0].trim() + " = " + (parts[1] || '').trim());
+	    console.log("cookie found (" + request.url + "): " + parts[0].trim() + " = " + (parts[1] || '').trim());
     });
 
     counter++;
@@ -227,8 +227,8 @@ http.createServer(function (request, response) {
 
 	    // Renew the cookies
 	    session = sessions.lookupOrCreate(request, {
-		lifetime: 86400,
-		domain: host,
+		lifetime: 4000,
+		domain: ".cs.brown.edu",
 		port: port
 	    });
 
