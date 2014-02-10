@@ -116,11 +116,12 @@ function lookupOrCreate(req, opts) {
     // set the time at which the session can be reclaimed
     session.expiration = (+new Date) + session.lifetime * 1000;
     // make sure a timeout is pending for the expired session reaper
-    if(!timeout)
+    if (!timeout)
 	timeout = setTimeout(cleanup, 60000);
 
     return session;
 }
+
 
 function create(opts) {
     var id,session;
@@ -129,6 +130,10 @@ function create(opts) {
     id = randomString(64);
 
     session = new Session(id, opts);
+
+    // set the time at which the session can be reclaimed
+    session.expiration = (+new Date) + session.lifetime * 1000;
+
     return session;
 }
 
@@ -222,6 +227,25 @@ Session.prototype.getSetCookieSessionValue =
 
 	return parts.join('; ');
     }
+
+Session.prototype.matchCookie = 
+    function (cstring) {
+
+	// console.log("old: " + this.id + " new: " + cstring);
+	// console.log("   resulting in: " + 
+	// 	    (cstring.match(this.id) ? true : false));
+
+	return cstring.match(this.id) ? true : false ;
+    }
+
+Session.prototype.staleCookie = 
+    function() {
+
+//	console.log(this.expiration + " + " + (+new Date) + ((this.expiration > +new Date) ? " fresh" : " stale"));
+
+	return (this.expiration > +new Date) ? false : true;
+    }
+
 
 // from milliseconds since the epoch to Cookie 'expires' format which
 // is Wdy, DD-Mon-YYYY HH:MM:SS GMT
