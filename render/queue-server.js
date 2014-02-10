@@ -93,9 +93,8 @@
     debug: If there is a debug argument (no matter what it is), the
           server will be fairly liberal in its output.
 
-TBD: 
+TBD (2/9/14)
   startup script that spawns a specified number of queue-server instances
-  deny requests with the wrong session cookie
   production logging
 
 */
@@ -146,20 +145,6 @@ fs.stat(shrdluScript, function (err, stats) {
 	process.exit(1);
     }
 });
-// This will be restarted as soon as someone asks for the index.html
-// file, so it doesn't have to run detached yet.  This process will
-// never be used, but it's less trouble to start it here and kill it
-// later.
-var shrdluDir = shrdluScript.substring(0, shrdluScript.lastIndexOf('/') + 1);
-
-var shrdluProcess = spawn(shrdluScript, [shrdluDir, host, port]);
-
-var moveQueue = Array();
-var cmdQueue = Array();
-var resQueue = Array();
-
-var counter = 0;
-var outstring = '-empty-';
 
 var prevConsoleString = "";
 var prevConsoleCount = 0;
@@ -175,41 +160,68 @@ function printConsole(str) {
     prevConsoleString = str;
 }
 
+// This will be restarted as soon as someone asks for the index.html
+// file, so it doesn't have to run detached yet.  This process will
+// never be used, but it's less trouble to start it here and kill it
+// later.
+var shrdluDir = shrdluScript.substring(0, shrdluScript.lastIndexOf('/') + 1);
+var shrdluProcess = spawn(shrdluScript, [shrdluDir, host, port]);
+
+// These are the queues we are serving.
+var moveQueue = Array();
+var cmdQueue = Array();
+var resQueue = Array();
+
+var counter = 0;
+var outstring = '-empty-';
+
+// This is the basis of the node.js server.  The request can be for an
+// entry in one of the queues or for one of a limited variety of files
+// this function can serve.  The behavior of this server is determined
+// by a session cookie.  The incoming request must have a cookie that
+// matches the current cookie, or the current cookie must be stale.
+// Otherwise, the server will return a 503 (busy) response.  Note that
+// requests that come from SHRDLU don't require a cookie at all.  
+//
+// (TBD: Replace this last exemption with a blanket exemption for
+// processes on the same host.)
 http.createServer(function (request, response) {
     var pathname = url.parse(request.url).pathname;
     var queryData  = url.parse(request.url, true).query;
-
-    // console.log(request.headers);
-    // console.log("****" + url.parse(request.url).pathname);
-    // console.log("^^^^" + request.url + "<<<");
-
-    // for (var entry in queryData) {
-    // 	console.log("+++" + entry + "->(" + queryData[entry] + ")"); }
-
-    // console.log(Object.keys(queryData).length);
 
     var cookies = {};
 
     // If the current session cookie is stale, don't reject any request.
     var reject = (!session.staleCookie());
 
-    request.headers.cookie && request.headers.cookie.split(';').forEach(function(cookie) {
-	var parts = cookie.split('=');
-	cookies[ parts[0].trim() ] = ( parts[1] || '').trim();
+    // Now check to see if a cookie has been included and matches the
+    // existing session.
+    if (reject) {
+	request.headers.cookie && request.headers.cookie.split(';')
+	    .forEach(function(cookie) {
+		var parts = cookie.split('=');
+		cookies[ parts[0].trim() ] = ( parts[1] || '').trim();
 
-	// If the session cookie matches, honor this request.
-	if (parts[0].trim().match(/SID/) && 
-	    session.matchCookie(parts[1].trim())) {
-	    reject = false;
-	    printConsole(session.staleCookie() + " " + reject);
-	}
+		if (debug) printConsole(parts[1].trim() + " >?< " + 
+					session.matchCookie(parts[1].trim()));
 
-	if (debug) 
-	    console.log("cookie found (" + request.url + "): " + parts[0].trim() + " = " + (parts[1] || '').trim());
-    });
+		// If the session cookie matches, honor this request.
+		if (parts[0].trim().match(/SID/) && 
+		    session.matchCookie(parts[1].trim())) {
+		    reject = false;
+		    printConsole(session.staleCookie() + " " + reject);
+		}
+		
+		if (debug) 
+		    console.log("cookie found (" + request.url + "): " + 
+				parts[0].trim() + " = " + 
+				(parts[1] || '').trim());
+	    });
+    }
 
     counter++;
 
+    // If we are just looking for the default, send it to index.html.
     if ((pathname == "/") && (Object.keys(queryData).length == 0)) {
 	pathname = "/index.html";
     }
@@ -304,7 +316,7 @@ http.createServer(function (request, response) {
 	// then refuse the connection.
 	if (reject) {
     	    response.writeHead(503, {"Content-Type": "text/plain"});
-    	    response.end("503 Busy\n");
+    	    response.end("503 SHRDLU is busy.  Please try again later.\n");
     	    return;
 	}
 
