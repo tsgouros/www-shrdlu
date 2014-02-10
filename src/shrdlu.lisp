@@ -1,4 +1,4 @@
-#!/opt/local/bin/clisp
+#!/usr/bin/clisp
 ;
 ; This file loads in all the needed files for SHRDLU.
 ;
@@ -10,7 +10,7 @@
 ; No, it's not.  Not sure what it is....
 (DEFCONSTANT CHRCT 76)
 
-;; Third argument is the load path, i.e. the directory in which the
+;; First argument is the load path, i.e. the directory in which the
 ;; source code lives.
 (if (car EXT:*ARGS*)
     (setq custom:*load-paths* (cons (car EXT:*ARGS*) custom:*load-paths*)))

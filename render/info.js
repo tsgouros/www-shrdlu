@@ -30,6 +30,38 @@ $(function()
 		$("#infoBox").dialog("open");
 	    });
 
+    $("#docBox")
+	.css({
+	    "background": "rgba(255,255,255,0.3)"
+	})
+	.dialog({ autoOpen: false,
+		  show: { effect: 'fade', duration: 500 },
+		  hide: { effect: 'fade', duration: 500 },
+		  position: {
+		      my: "center",
+		      at: "center",
+		      of: window
+		  }
+		});
+
+    $("#docButton")
+	.text("") // no text
+	.css(
+	    { "z-index":"2",
+	      "background":"rgba(0,0,0,0)", "opacity":"0.9", 
+	      "position":"absolute", "top":"4px", "left":"4px"
+	    }) // adds CSS
+	.append("<img width='38' height='39' src='import/icon-help.png'/>")
+	.button()
+	.click( 
+	    function() 
+	    { 
+		$("#docBox").dialog("open");
+	    });
+
+
+
+
     $("#sentenceForm")
 	.submit(function() {
 	    var tmp = document.getElementById("cmdbox").value;

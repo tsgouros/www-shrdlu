@@ -202,9 +202,6 @@ http.createServer(function (request, response) {
 		var parts = cookie.split('=');
 		cookies[ parts[0].trim() ] = ( parts[1] || '').trim();
 
-		if (debug) printConsole(parts[1].trim() + " >?< " + 
-					session.matchCookie(parts[1].trim()));
-
 		// If the session cookie matches, honor this request.
 		if (parts[0].trim().match(/SID/) && 
 		    session.matchCookie(parts[1].trim())) {
@@ -215,7 +212,9 @@ http.createServer(function (request, response) {
 		if (debug) 
 		    console.log("cookie found (" + request.url + "): " + 
 				parts[0].trim() + " = " + 
-				(parts[1] || '').trim());
+				(parts[1] || '').trim() +
+				" match=" + 
+				session.matchCookie(parts[1].trim()));
 	    });
     }
 
