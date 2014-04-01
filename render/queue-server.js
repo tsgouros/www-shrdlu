@@ -75,6 +75,9 @@
 
   ******  Command line options
 
+  IMPORTANT: This server uses relative pathnames, so must be run in
+  the directory where the files it is to serve live.
+
   The arguments for this command are:
 
     node queue-server.js host port shrdluScript [debug]
@@ -160,10 +163,10 @@ function printConsole(str) {
     prevConsoleString = str;
 }
 
-// This will be restarted as soon as someone asks for the index.html
-// file, so it doesn't have to run detached yet.  This process will
-// never be used, but it's less trouble to start it here and kill it
-// later.
+// The SHRDLU lisp process will be restarted as soon as someone asks
+// for the index.html file, so it doesn't have to run detached yet.
+// The process we're starting right here will never be used, but it's
+// less trouble to start it here and just restart it later.
 var shrdluDir = shrdluScript.substring(0, shrdluScript.lastIndexOf('/') + 1);
 var shrdluProcess = spawn(shrdluScript, [shrdluDir, host, port]);
 
@@ -191,6 +194,13 @@ http.createServer(function (request, response) {
 
     var cookies = {};
 
+//    if (debug) {
+//	console.log("URL:" + request.url);
+//	console.log("HOST:" + request.headers.host);
+//	console.log("AGENT" + request.headers.user-agent);
+//    }
+
+
     // If the current session cookie is stale, don't reject any request.
     var reject = (!session.staleCookie());
 
@@ -203,18 +213,25 @@ http.createServer(function (request, response) {
 		cookies[ parts[0].trim() ] = ( parts[1] || '').trim();
 
 		// If the session cookie matches, honor this request.
+		var debugReject = true
 		if (parts[0].trim().match(/SID/) && 
 		    session.matchCookie(parts[1].trim())) {
 		    reject = false;
+		    debugReject = false;
 		    printConsole(session.staleCookie() + " " + reject);
 		}
 		
-		if (debug) 
+		if (debug) {
 		    console.log("cookie found (" + request.url + "): " + 
 				parts[0].trim() + " = " + 
 				(parts[1] || '').trim() +
 				" match=" + 
 				session.matchCookie(parts[1].trim()));
+		    console.log("debugReject=" + debugReject);
+		}
+		
+		debugReject = null;
+		parts = null;
 	    });
     }
 
@@ -250,8 +267,8 @@ http.createServer(function (request, response) {
 
     var out;
 
-    // The SHRDLU instance does not need to use session cookies, but
-    // the user's client does.  The messages that check for reject
+    // We do not require the SHRDLU instance to send session cookies,
+    // but the user's client does.  The messages that check for reject
     // below are the ones we expect from the user's client.
     if (queryData.act) {
 
@@ -353,7 +370,7 @@ http.createServer(function (request, response) {
 
 	    // Renew the cookies
 	    session = sessions.lookupOrCreate(request, {
-		lifetime: 5400,
+		lifetime: 3600,
 		domain: ".cs.brown.edu",
 		port: port
 	    });
@@ -364,52 +381,71 @@ http.createServer(function (request, response) {
 
 	}
 
-	fs.exists(filename, function(exists) {
-    	    if (!exists) {
-    		response.writeHead(404, {"Content-Type": "text/plain"});
-    		response.end("404 Not Found\n");
-    	    } else {
-    		fs.readFile(filename, "binary", function(err, file) {
-    		    if(err) {
-    			response.writeHead(500, {"Content-Type": "text/plain"});
-    			response.end(err + "\n");
-    		    } else {
+	var exists;
+	try {
+	    fs.openSync(filename, 'r', function(err, fd) {
+		console.log("open error: " + err);
+	    });
+	    exists = true;
+	} 
+	catch(err) {
+	    console.log("another open error: " + err);
+	    exists = false;
+	}
 
-			var fileType, contentType;
+    	if (!exists) {
+	    console.log("can't find: " + filename);
+    	    response.writeHead(404, {"Content-Type": "text/plain"});
+    	    response.end("404 Not Found\n");
+    	} else {
 
-			if (filename.match(/\.js/g)) {
-			    contentType = "application/javascript";
-			    fileType = "utf8";
+	    var sessionCookie = session.getSetCookieSessionValue();
 
-			} else if (filename.match(/\.css/g)) {
-			    contentType = "text/css";
-			    fileType = "utf8";
+    	    fs.readFile(filename, "binary", function(err, file) {
 
-			} else if (filename.match(/\.png/g)) {
-			    contentType = "image/png";
-			    fileType = "binary";
+		if(err) {
+    		    response.writeHead(500, {"Content-Type": "text/plain"});
+    		    response.end(err + "\n");
+    		} else {
 
-			} else {
-			    contentType = "text/html";
-			    fileType = "utf8";
-			}
+		    var fileType, contentType;
 
-			if (debug) {
-			    printConsole("sending: " + filename + " (" + fileType + ", " + contentType + ")");
-			    printConsole("cookie:" + session.getSetCookieSessionValue());
-			}
+		    if (filename.match(/\.js/g)) {
+			contentType = "application/javascript";
+			fileType = "utf8";
 
-			response.writeHead(200, [
-			    ["Content-Type", contentType ],
-			    ["Set-Cookie", session.getSetCookieSessionValue()]
-			]);
+		    } else if (filename.match(/\.css/g)) {
+			contentType = "text/css";
+			fileType = "utf8";
 
-			response.write(file, fileType);
-    			response.end();
+		    } else if (filename.match(/\.png/g)) {
+			contentType = "image/png";
+			fileType = "binary";
+
+		    } else {
+			contentType = "text/html";
+			fileType = "utf8";
 		    }
-		});
-	    }
-	});
+
+		    if (debug) {
+			printConsole("sending: " + filename + " (" + fileType + ", " + contentType + ")");
+			printConsole("cookie:" + sessionCookie);
+		    }
+
+		    response.writeHead(200, [
+			["Content-Type", contentType ],
+			["Set-Cookie", sessionCookie]
+		    ]);
+
+		    response.write(file, fileType);
+    		    response.end();
+		}
+		sessionCookie = null;
+		filename = null;
+	    });
+
+	}
+	exists = null;
 
 	out = '';
     }
