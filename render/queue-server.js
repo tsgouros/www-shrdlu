@@ -169,6 +169,21 @@ function printConsole(str) {
 // less trouble to start it here and just restart it later.
 var shrdluDir = shrdluScript.substring(0, shrdluScript.lastIndexOf('/') + 1);
 var shrdluProcess = spawn(shrdluScript, [shrdluDir, host, port]);
+if (debug) console.log("spawned process " + shrdluProcess.pid);
+
+
+// Check regularly. If the session cookie is stale, restart the shrdlu
+// process.
+setInterval(function() {
+    if (session.staleCookie()) {
+	if (debug) console.log("restarting SHRDLU " + Date());
+	shrdluProcess.kill();
+	shrdluProcess = spawn(shrdluScript, [shrdluDir, host, port], 
+			      {detached: true, stdio: ['ignore']} );
+	if (debug) console.log("spawned process " + shrdluProcess.pid);
+    }
+}, 300000);
+
 
 // These are the queues we are serving.
 var moveQueue = Array();
@@ -227,7 +242,6 @@ http.createServer(function (request, response) {
 				(parts[1] || '').trim() +
 				" match=" + 
 				session.matchCookie(parts[1].trim()));
-		    console.log("debugReject=" + debugReject);
 		}
 		
 		debugReject = null;
@@ -294,6 +308,13 @@ http.createServer(function (request, response) {
 
 	out = queryData.cmd;
 
+	// Log the command data, for giggles, mostly.
+	fs.appendFile('../log/command.' + port + '.log', 
+		      '[' + Date() + ']>' + out + '\n' , function (err) {
+	    if (err) throw err;
+	    console.log('log write error!');
+	});
+
     } else if (queryData.cmdget) {
 
 	if (cmdQueue.length >0) {
@@ -312,6 +333,13 @@ http.createServer(function (request, response) {
 	resQueue.push(queryData.res);
 
 	out = queryData.res;
+
+	// Log the command data, for giggles, mostly.
+	fs.appendFile('../log/command.' + port + '.log', 
+		      '[' + Date() + ']<' + out + '\n' , function (err) {
+	    if (err) throw err;
+	    console.log('log write error!');
+	});
 
     } else if ((!reject) && queryData.resget) {
 
@@ -350,6 +378,8 @@ http.createServer(function (request, response) {
 				  {detached: true, stdio: ['ignore']} );
 
 	    if (debug) {
+		console.log("spawned process " + shrdluProcess.pid);
+
 		shrdluProcess.stdout.on('data', function (data) {
 		    printConsole('stdout: ' + data);
 		});
@@ -370,7 +400,7 @@ http.createServer(function (request, response) {
 
 	    // Renew the cookies
 	    session = sessions.lookupOrCreate(request, {
-		lifetime: 3600,
+		lifetime: 1200,
 		domain: ".cs.brown.edu",
 		port: port
 	    });
