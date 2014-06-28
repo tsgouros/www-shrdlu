@@ -1,0 +1,38 @@
+This project is a revival of Terry Winograd's famous SHRDLU computer
+language project.  SHRDLU was a program meant to 'understand' language
+in a way that is not usually done any more.  By giving SHRDLU
+knowledge of a limited domain of blocks, boxes, and pyramids, and
+grounding the symbols of its language with the 'objects' of its world,
+SHRDLU was able to have very sophisticated conversations about the
+things it knows about.
+
+Sadly, SHRDLU was originally written in a now-dead dialect of Lisp.
+It was revived in the 1990s and ported to CLisp.  (Read more about the
+1990s SHRDLU resurrection at: http://www.semaphorecorp.com/misc/shrdlu.html)
+
+This project (www-shrdlu) involved re-reviving that port, and adding a
+Javascript/3js graphics implementation of the renderer.  This version
+was meant to run with an Apache load balancer for scalability, so it
+includes support for session keys, so that multiple users can use
+multiple instances of SHRDLU on the same machine.  At its home machine
+at:
+
+  http://block.cs.brown.edu
+
+There are five instances running at one time, and that seems
+sufficient for now.
+
+The 1990s revival of SHRDLU was not complete; important functionality
+that was documented in the 1970s did not survive.  The current version
+vaguely resembles a SHRDLU that has had a stroke.  By making the code
+available in a collaborative space like github, my hope is that people
+might be able to contribute to SHRDLU's rehabilitation, and to work on
+other enhancements for it.
+
+
+
+
+
+
+
+
