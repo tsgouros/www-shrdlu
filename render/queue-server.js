@@ -96,9 +96,47 @@
     debug: If there is a debug argument (no matter what it is), the
           server will be fairly liberal in its output.
 
-TBD (2/9/14)
-  startup script that spawns a specified number of queue-server instances
-  production logging
+   Example:
+
+     On the block.cs.brown.edu server, this script is invoked several 
+     times (independently), with commands such as this:
+
+       $ node /user/shrdlu/render/queue-server.js 127.0.0.1 1641 /user/shrdlu/src/shrdlu.lisp 1
+
+     This starts the server on the localhost, port 1641, and passes those
+     values to shrdlu.lisp.  The '1' is the debug flag.
+
+     Meanwhile, the (Apache) server is configured to use
+     mod_server_proxy as a reverse proxy server.  The Apache
+     configuration for this looks roughly like so:
+
+     ProxyRequests off
+     ProxyPass / balancer://block/ stickysession=SID|sid
+     ProxyPassReverse / http://127.0.0.1:1639/
+     ProxyPassReverse / http://127.0.0.1:1640/
+     ProxyPassReverse / http://127.0.0.1:1641/
+     ProxyPassReverse / http://127.0.0.1:1642/
+     ProxyPassReverse / http://127.0.0.1:1643/
+     <Proxy balancer://block>
+       BalancerMember http://127.0.0.1:1639 loadfactor=1 route=1639
+       BalancerMember http://127.0.0.1:1640 loadfactor=1 route=1640
+       BalancerMember http://127.0.0.1:1641 loadfactor=1 route=1641
+       BalancerMember http://127.0.0.1:1642 loadfactor=1 route=1642
+       BalancerMember http://127.0.0.1:1643 loadfactor=1 route=1643
+       ProxySet lbmethod=byrequests
+     </Proxy>
+
+     Park this in /etc/apache2/conf.d/shrdlu-balancer.conf or
+     something similar.
+
+     Doubtless there is a cleaner way to do this configuration that
+     encompasses an arbitrary number of load balancer members, but I
+     don't know it.
+
+TBD (3/31/15)
+  - startup script that spawns a specified number of queue-server instances
+  - production logging
+  - configuration for N load balancer members
 
 */
 var sys = require("sys");
